@@ -1,0 +1,25 @@
+{
+    "name": "Couple Finance Tracker",
+    "short_name": "CoupleFinance",
+    "description": "A cozy finance dashboard for couples to track their savings and expenses together",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f5f0eb",
+    "theme_color": "#b8602a",
+    "orientation": "portrait",
+    "scope": "/",
+    "icons": [
+        {
+            "src": "/logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

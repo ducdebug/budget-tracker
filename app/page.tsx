@@ -145,197 +145,199 @@ export default function Dashboard() {
   }
 
   return (
-    <PullToRefresh onRefresh={async () => {
-      await Promise.all([
-        refreshSummaries(),
-        refreshTransactions(),
-        refreshCategories(),
-        refreshDebts(),
-      ]);
-    }}>
-      <div className="min-h-screen bg-background">
-        <Header />
-        {initialLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-        )}
-        {!initialLoading && users.length < 2 && activeTab !== 'settings' && (
-          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-5 shadow-lg">
-              <span className="text-5xl">👫</span>
+    <>
+      <PullToRefresh onRefresh={async () => {
+        await Promise.all([
+          refreshSummaries(),
+          refreshTransactions(),
+          refreshCategories(),
+          refreshDebts(),
+        ]);
+      }}>
+        <div className="min-h-screen bg-background">
+          <Header />
+          {initialLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Cần 2 người dùng</h2>
-            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-              Ứng dụng cần <strong>2 thành viên</strong> để hoạt động.
-              Hiện tại mới có <strong>{users.length}</strong> người đăng ký.
-            </p>
-            <p className="text-sm text-muted-foreground mt-3">
-              Hãy mời người còn lại tạo tài khoản nhé! 💕
-            </p>
-            <div className="mt-6 px-4 py-2.5 bg-primary/10 rounded-2xl">
-              <p className="text-xs font-medium text-primary">
-                ⏳ Đang chờ thêm {2 - users.length} người nữa...
+          )}
+          {!initialLoading && users.length < 2 && activeTab !== 'settings' && (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-5 shadow-lg">
+                <span className="text-5xl">👫</span>
+              </div>
+              <h2 className="text-xl font-bold text-foreground mb-2">Cần 2 người dùng</h2>
+              <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                Ứng dụng cần <strong>2 thành viên</strong> để hoạt động.
+                Hiện tại mới có <strong>{users.length}</strong> người đăng ký.
               </p>
-            </div>
-          </div>
-        )}
-
-        {!initialLoading && users.length >= 2 && activeTab === 'home' && (
-          <>
-            <div className="space-y-4 px-6 py-4">
-              <div className="flex gap-3">
-                {summaries.map((s, i) => (
-                  <BalanceCard
-                    key={s.user.id}
-                    name={s.user.name}
-                    balance={s.balance}
-                    income={s.totalIncome}
-                    expense={s.totalExpense}
-                    avatar={i === 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-pink-400 to-pink-600'}
-                    avatarInitial={s.user.avatar || '👤'}
-                    avatarUrl={s.user.avatar_url}
-                    bgColor={i === 0 ? 'bg-blue-50' : 'bg-pink-50'}
-                  />
-                ))}
+              <p className="text-sm text-muted-foreground mt-3">
+                Hãy mời người còn lại tạo tài khoản nhé! 💕
+              </p>
+              <div className="mt-6 px-4 py-2.5 bg-primary/10 rounded-2xl">
+                <p className="text-xs font-medium text-primary">
+                  ⏳ Đang chờ thêm {2 - users.length} người nữa...
+                </p>
               </div>
             </div>
+          )}
 
-            <CoupleOverview
-              totalBalance={totalBalance}
-              monthlyIncome={totalIncome}
-              monthlyExpense={totalExpense}
-            />
+          {!initialLoading && users.length >= 2 && activeTab === 'home' && (
+            <>
+              <div className="space-y-4 px-6 py-4">
+                <div className="flex gap-3">
+                  {summaries.map((s, i) => (
+                    <BalanceCard
+                      key={s.user.id}
+                      name={s.user.name}
+                      balance={s.balance}
+                      income={s.totalIncome}
+                      expense={s.totalExpense}
+                      avatar={i === 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-pink-400 to-pink-600'}
+                      avatarInitial={s.user.avatar || '👤'}
+                      avatarUrl={s.user.avatar_url}
+                      bgColor={i === 0 ? 'bg-blue-50' : 'bg-pink-50'}
+                    />
+                  ))}
+                </div>
+              </div>
 
-            <UncategorizedBanner categories={categories} onUpdate={() => { refreshTransactions(); refreshSummaries(); }} />
+              <CoupleOverview
+                totalBalance={totalBalance}
+                monthlyIncome={totalIncome}
+                monthlyExpense={totalExpense}
+              />
 
-            <RecentActivities transactions={transactions} onViewAll={() => setShowHistory(true)} />
-          </>
-        )}
+              <UncategorizedBanner categories={categories} onUpdate={() => { refreshTransactions(); refreshSummaries(); }} />
 
-        {!initialLoading && users.length >= 2 && activeTab === 'stats' && (
-          <StatisticsPanel />
-        )}
-        {!initialLoading && users.length >= 2 && activeTab === 'categories' && (
-          <CategoryManager categories={categories} onUpdate={handleCategoryUpdate} />
-        )}
+              <RecentActivities transactions={transactions} onViewAll={() => setShowHistory(true)} />
+            </>
+          )}
 
-        {!initialLoading && users.length >= 2 && activeTab === 'debt' && (() => {
-          const myDebts = debts.filter(d => d.user_id === currentUserId);
-          const otherDebts = debts.filter(d => d.user_id !== currentUserId);
-          const otherUserName = users.find(u => u.id !== currentUserId)?.name || 'Đối phương';
+          {!initialLoading && users.length >= 2 && activeTab === 'stats' && (
+            <StatisticsPanel />
+          )}
+          {!initialLoading && users.length >= 2 && activeTab === 'categories' && (
+            <CategoryManager categories={categories} onUpdate={handleCategoryUpdate} />
+          )}
 
-          const renderDebtGroup = (debtList: Debt[], canResolve: boolean) => {
-            const pending = debtList.filter(d => d.status === 'pending');
-            const resolved = debtList.filter(d => d.status === 'resolved');
+          {!initialLoading && users.length >= 2 && activeTab === 'debt' && (() => {
+            const myDebts = debts.filter(d => d.user_id === currentUserId);
+            const otherDebts = debts.filter(d => d.user_id !== currentUserId);
+            const otherUserName = users.find(u => u.id !== currentUserId)?.name || 'Đối phương';
+
+            const renderDebtGroup = (debtList: Debt[], canResolve: boolean) => {
+              const pending = debtList.filter(d => d.status === 'pending');
+              const resolved = debtList.filter(d => d.status === 'resolved');
+              return (
+                <>
+                  {pending.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1.5">
+                        Chưa trả ({pending.length})
+                      </p>
+                      <div className="space-y-2">
+                        {pending.map(debt => (
+                          <DebtItem
+                            key={debt.id}
+                            debt={debt}
+                            onResolve={canResolve ? handleResolveDebt : () => { }}
+                            resolving={resolvingDebt === debt.id}
+                            showResolveButton={canResolve}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {resolved.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wider mb-1.5">
+                        Đã trả ({resolved.length})
+                      </p>
+                      <div className="space-y-2">
+                        {resolved.map(debt => (
+                          <DebtItem
+                            key={debt.id}
+                            debt={debt}
+                            onResolve={() => { }}
+                            resolving={false}
+                            showResolveButton={false}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {debtList.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-3 bg-muted/30 rounded-xl">
+                      Chưa có khoản nợ nào
+                    </p>
+                  )}
+                </>
+              );
+            };
+
             return (
-              <>
-                {pending.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1.5">
-                      Chưa trả ({pending.length})
-                    </p>
-                    <div className="space-y-2">
-                      {pending.map(debt => (
-                        <DebtItem
-                          key={debt.id}
-                          debt={debt}
-                          onResolve={canResolve ? handleResolveDebt : () => { }}
-                          resolving={resolvingDebt === debt.id}
-                          showResolveButton={canResolve}
-                        />
-                      ))}
-                    </div>
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-foreground">📒 Sổ Nợ</h2>
+                  <button
+                    onClick={() => setShowAddDebt(true)}
+                    className="text-sm font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors active:scale-95"
+                  >
+                    + Thêm nợ
+                  </button>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    📌 Nợ của tôi
+                  </h3>
+                  <div className="bg-card rounded-2xl p-3 border border-border shadow-sm">
+                    {renderDebtGroup(myDebts, true)}
                   </div>
-                )}
-                {resolved.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wider mb-1.5">
-                      Đã trả ({resolved.length})
-                    </p>
-                    <div className="space-y-2">
-                      {resolved.map(debt => (
-                        <DebtItem
-                          key={debt.id}
-                          debt={debt}
-                          onResolve={() => { }}
-                          resolving={false}
-                          showResolveButton={false}
-                        />
-                      ))}
-                    </div>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    👀 Nợ của {otherUserName}
+                  </h3>
+                  <div className="bg-card rounded-2xl p-3 border border-border shadow-sm">
+                    {renderDebtGroup(otherDebts, false)}
                   </div>
-                )}
-                {debtList.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-3 bg-muted/30 rounded-xl">
-                    Chưa có khoản nợ nào
-                  </p>
-                )}
-              </>
+                </div>
+              </div>
             );
-          };
+          })()}
 
-          return (
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-foreground">📒 Sổ Nợ</h2>
-                <button
-                  onClick={() => setShowAddDebt(true)}
-                  className="text-sm font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors active:scale-95"
-                >
-                  + Thêm nợ
-                </button>
-              </div>
+          {!initialLoading && activeTab === 'settings' && (
+            <SettingsPanel users={users} onUpdate={handleSettingsUpdate} />
+          )}
 
-              <div className="mb-6">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  📌 Nợ của tôi
-                </h3>
-                <div className="bg-card rounded-2xl p-3 border border-border shadow-sm">
-                  {renderDebtGroup(myDebts, true)}
-                </div>
-              </div>
+          <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}></div>
+        </div>
+      </PullToRefresh>
 
-              <div className="mb-6">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  👀 Nợ của {otherUserName}
-                </h3>
-                <div className="bg-card rounded-2xl p-3 border border-border shadow-sm">
-                  {renderDebtGroup(otherDebts, false)}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onFabClick={() => setShowAddTx(true)}
+      />
 
-        {!initialLoading && activeTab === 'settings' && (
-          <SettingsPanel users={users} onUpdate={handleSettingsUpdate} />
-        )}
+      <AddTransactionDrawer
+        open={showAddTx}
+        onClose={() => setShowAddTx(false)}
+        onSuccess={handleTransactionSuccess}
+        categories={categories}
+        currentUserId={currentUserId}
+      />
 
-        <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}></div>
-
-        <BottomNav
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onFabClick={() => setShowAddTx(true)}
-        />
-
-        <AddTransactionDrawer
-          open={showAddTx}
-          onClose={() => setShowAddTx(false)}
-          onSuccess={handleTransactionSuccess}
-          categories={categories}
-          currentUserId={currentUserId}
-        />
-
-        <AddDebtDrawer
-          open={showAddDebt}
-          onClose={() => setShowAddDebt(false)}
-          onSuccess={handleDebtSuccess}
-          users={users}
-          currentUserId={currentUserId}
-        />
-      </div>
-    </PullToRefresh>
+      <AddDebtDrawer
+        open={showAddDebt}
+        onClose={() => setShowAddDebt(false)}
+        onSuccess={handleDebtSuccess}
+        users={users}
+        currentUserId={currentUserId}
+      />
+    </>
   );
 }

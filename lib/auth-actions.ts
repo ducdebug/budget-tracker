@@ -284,7 +284,8 @@ export async function toggleBalanceEdit(
 
         const { error } = await supabase
             .from('app_settings')
-            .upsert({ key: 'allow_balance_edit', value: enabled ? 'true' : 'false', updated_at: new Date().toISOString() });
+            .update({ value: enabled ? 'true' : 'false', updated_at: new Date().toISOString() })
+            .eq('key', 'allow_balance_edit');
 
         if (error) throw error;
         return { success: true };

@@ -134,7 +134,7 @@ export function SettingsPanel({ users, onUpdate }: SettingsPanelProps) {
                                     <span className="text-sm font-bold text-foreground">
                                         {currentUser.total_balance.toLocaleString()} ₫
                                     </span>
-                                    {(allowBalanceEdit || currentUser.is_admin) ? (
+                                    {allowBalanceEdit ? (
                                         <button
                                             onClick={startEditBalance}
                                             className="p-1.5 rounded-full hover:bg-muted transition-colors"
@@ -147,9 +147,9 @@ export function SettingsPanel({ users, onUpdate }: SettingsPanelProps) {
                                 </div>
                             )}
                         </div>
-                        {!allowBalanceEdit && !currentUser.is_admin && (
+                        {!allowBalanceEdit && (
                             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                                <Lock size={10} /> Chỉnh sửa số dư bị tắt bởi admin
+                                <Lock size={10} /> Chỉnh sửa số dư đang bị tắt
                             </p>
                         )}
                         {error && <p className="text-red-500 text-xs mt-2">{error}</p>}

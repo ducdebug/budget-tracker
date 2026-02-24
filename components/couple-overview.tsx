@@ -88,10 +88,10 @@ export function CoupleOverview({
             {showHistory && (
                 <>
                     <div
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
                         onClick={() => setShowHistory(false)}
                     />
-                    <div className="fixed inset-x-0 bottom-0 z-50 max-w-md mx-auto animate-in slide-in-from-bottom duration-300">
+                    <div className="fixed inset-x-0 bottom-0 z-[60] max-w-md mx-auto animate-in slide-in-from-bottom duration-300">
                         <div className="bg-background rounded-t-3xl shadow-2xl border-t border-border max-h-[80vh] flex flex-col">
                             <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
                                 <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export function CoupleOverview({
                                 </button>
                             </div>
 
-                            <div className="overflow-y-auto px-6 py-4 space-y-3 flex-1">
+                            <div className="overflow-y-auto px-6 py-4 pb-20 space-y-3 flex-1">
                                 {loadingHistory ? (
                                     <div className="flex items-center justify-center py-8">
                                         <div className="animate-spin w-6 h-6 border-3 border-primary border-t-transparent rounded-full" />

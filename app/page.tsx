@@ -7,6 +7,7 @@ import { CoupleOverview } from '@/components/couple-overview';
 import { RecentActivities } from '@/components/recent-activities';
 import { BottomNav } from '@/components/bottom-nav';
 import { AddTransactionDrawer } from '@/components/add-transaction-drawer';
+import { MonthlyHistoryDrawer } from '@/components/monthly-history-drawer';
 import { StatisticsPanel } from '@/components/statistics-panel';
 import { DebtItem, AddDebtDrawer } from '@/components/debt-tracker';
 import { SettingsPanel } from '@/components/settings-panel';
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [showAddTx, setShowAddTx] = useState(false);
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showMonthlyHistory, setShowMonthlyHistory] = useState(false);
 
   const [summaries, setSummaries] = useState<UserFinanceSummary[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -206,6 +208,7 @@ export default function Dashboard() {
                 totalBalance={totalBalance}
                 monthlyIncome={totalIncome}
                 monthlyExpense={totalExpense}
+                onOpenHistory={() => setShowMonthlyHistory(true)}
               />
 
               <UncategorizedBanner categories={categories} onUpdate={() => { refreshTransactions(); refreshSummaries(); }} />
@@ -337,6 +340,11 @@ export default function Dashboard() {
         onSuccess={handleDebtSuccess}
         users={users}
         currentUserId={currentUserId}
+      />
+
+      <MonthlyHistoryDrawer
+        open={showMonthlyHistory}
+        onClose={() => setShowMonthlyHistory(false)}
       />
     </>
   );

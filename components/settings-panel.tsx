@@ -1,48 +1,32 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Pencil, Check, X, Wallet, Loader2, Lock } from 'lucide-react';
 import { updateUser } from '@/lib/actions';
-import { getUserProfile, getAppSettings } from '@/lib/auth-actions';
 import { ProfileSection } from '@/components/profile-section';
 import { AdminSettings } from '@/components/admin-settings';
-import type { User } from '@/lib/types';
+import type { User, AppSettings } from '@/lib/types';
 
 interface SettingsPanelProps {
     users: User[];
+    currentUser: User | null;
+    appSettings: AppSettings;
     onUpdate: () => void;
+    onProfileRefresh: () => Promise<void>;
+    onSettingsRefresh: () => Promise<void>;
 }
 
-export function SettingsPanel({ users, onUpdate }: SettingsPanelProps) {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [loadingProfile, setLoadingProfile] = useState(true);
+export function SettingsPanel({ users, currentUser, appSettings, onUpdate, onProfileRefresh, onSettingsRefresh }: SettingsPanelProps) {
     const [editingBalance, setEditingBalance] = useState(false);
     const [editBalance, setEditBalance] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
-    const [allowBalanceEdit, setAllowBalanceEdit] = useState(true);
 
-    const fetchProfile = useCallback(async () => {
-        const [result, settingsResult] = await Promise.all([
-            getUserProfile(),
-            getAppSettings(),
-        ]);
-        if (result.success && result.data) {
-            setCurrentUser(result.data);
-        }
-        if (settingsResult.success && settingsResult.data) {
-            setAllowBalanceEdit(settingsResult.data.allow_balance_edit);
-        }
-        setLoadingProfile(false);
-    }, []);
-
-    useEffect(() => {
-        fetchProfile();
-    }, [fetchProfile]);
+    const allowBalanceEdit = appSettings.allow_balance_edit;
 
     const handleProfileUpdate = () => {
-        fetchProfile();
+        onProfileRefresh();
         onUpdate();
     };
 
@@ -75,12 +59,17 @@ export function SettingsPanel({ users, onUpdate }: SettingsPanelProps) {
         if (result.success) {
             setEditingBalance(false);
             setSuccessMsg('✅ Đã cập nhật số dư!');
-            fetchProfile();
+            onProfileRefresh();
             onUpdate();
             setTimeout(() => setSuccessMsg(''), 3000);
         } else {
             setError(result.error || 'Lỗi khi cập nhật');
         }
+    };
+
+    const handleSettingsChange = () => {
+        onSettingsRefresh();
+        onUpdate();
     };
 
     const otherUser = users.find(u => u.id !== currentUser?.id);
@@ -89,11 +78,11 @@ export function SettingsPanel({ users, onUpdate }: SettingsPanelProps) {
         <div className="px-6 py-4">
             <h2 className="text-lg font-bold text-foreground mb-4">⚙️ Cài đặt</h2>
 
-            {loadingProfile ? (
+            {!currentUser ? (
                 <div className="flex items-center justify-center py-8">
                     <Loader2 size={24} className="animate-spin text-primary" />
                 </div>
-            ) : currentUser ? (
+            ) : (
                 <div className="mb-6">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                         👤 Tài khoản của tôi
@@ -155,7 +144,7 @@ export function SettingsPanel({ users, onUpdate }: SettingsPanelProps) {
                         {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
                     </div>
                 </div>
-            ) : null}
+            )}
 
             {successMsg && (
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-2xl">
@@ -195,7 +184,7 @@ export function SettingsPanel({ users, onUpdate }: SettingsPanelProps) {
 
             {currentUser?.is_admin && (
                 <div className="mb-6">
-                    <AdminSettings onUpdate={onUpdate} />
+                    <AdminSettings appSettings={appSettings} onUpdate={handleSettingsChange} />
                 </div>
             )}
         </div>

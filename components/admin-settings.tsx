@@ -1,33 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Shield, ToggleLeft, ToggleRight, Loader2, AlertTriangle, Wallet } from 'lucide-react';
-import { toggleRegistration, toggleBalanceEdit, getAppSettings } from '@/lib/auth-actions';
+import { toggleRegistration, toggleBalanceEdit } from '@/lib/auth-actions';
+import type { AppSettings } from '@/lib/types';
 
 interface AdminSettingsProps {
+    appSettings: AppSettings;
     onUpdate?: () => void;
 }
 
-export function AdminSettings({ onUpdate }: AdminSettingsProps) {
-    const [registrationEnabled, setRegistrationEnabled] = useState(true);
-    const [balanceEditEnabled, setBalanceEditEnabled] = useState(true);
-    const [loading, setLoading] = useState(true);
+export function AdminSettings({ appSettings, onUpdate }: AdminSettingsProps) {
     const [savingReg, setSavingReg] = useState(false);
     const [savingBalance, setSavingBalance] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            const result = await getAppSettings();
-            if (result.success && result.data) {
-                setRegistrationEnabled(result.data.registration_enabled);
-                setBalanceEditEnabled(result.data.allow_balance_edit);
-            }
-            setLoading(false);
-        };
-        fetchSettings();
-    }, []);
+    const registrationEnabled = appSettings.registration_enabled;
+    const balanceEditEnabled = appSettings.allow_balance_edit;
 
     const handleToggleRegistration = async () => {
         setSavingReg(true);
@@ -39,7 +29,6 @@ export function AdminSettings({ onUpdate }: AdminSettingsProps) {
         setSavingReg(false);
 
         if (result.success) {
-            setRegistrationEnabled(newValue);
             setSuccessMsg(
                 newValue
                     ? '✅ Đã mở đăng ký cho người dùng mới'
@@ -62,7 +51,6 @@ export function AdminSettings({ onUpdate }: AdminSettingsProps) {
         setSavingBalance(false);
 
         if (result.success) {
-            setBalanceEditEnabled(newValue);
             setSuccessMsg(
                 newValue
                     ? '✅ Đã cho phép người dùng chỉnh sửa số dư'
@@ -74,14 +62,6 @@ export function AdminSettings({ onUpdate }: AdminSettingsProps) {
             setError(result.error || 'Lỗi khi cập nhật cài đặt');
         }
     };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-4">
-                <Loader2 size={20} className="animate-spin text-primary" />
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-3">

@@ -22,13 +22,14 @@ import {
   getDebts,
   resolveDebt,
 } from '@/lib/actions';
-import { getUserProfile } from '@/lib/auth-actions';
+import { getUserProfile, getAppSettings } from '@/lib/auth-actions';
 import type {
   UserFinanceSummary,
   Transaction,
   Category,
   Debt,
   User,
+  AppSettings,
 } from '@/lib/types';
 
 export default function Dashboard() {
@@ -45,6 +46,8 @@ export default function Dashboard() {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [appSettings, setAppSettings] = useState<AppSettings>({ registration_enabled: true, allow_balance_edit: true });
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [resolvingDebt, setResolvingDebt] = useState<string | null>(null);
@@ -74,16 +77,30 @@ export default function Dashboard() {
     if (res.success && res.data) setDebts(res.data);
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    const res = await getUserProfile();
+    if (res.success && res.data) {
+      setCurrentUser(res.data);
+      setCurrentUserId(res.data.id);
+    }
+  }, []);
+
+  const refreshAppSettings = useCallback(async () => {
+    const res = await getAppSettings();
+    if (res.success && res.data) setAppSettings(res.data);
+  }, []);
+
   const fetchAll = useCallback(async () => {
     setInitialLoading(true);
     try {
-      const [summaryRes, txRes, catRes, debtRes, profileRes] = await Promise.all(
+      const [summaryRes, txRes, catRes, debtRes, profileRes, settingsRes] = await Promise.all(
         [
           getUsersSummary(),
           getRecentTransactions(10),
           getCategories(),
           getDebts(),
           getUserProfile(),
+          getAppSettings(),
         ]
       );
 
@@ -97,7 +114,9 @@ export default function Dashboard() {
       if (debtRes.success && debtRes.data) setDebts(debtRes.data);
       if (profileRes.success && profileRes.data) {
         setCurrentUserId(profileRes.data.id);
+        setCurrentUser(profileRes.data);
       }
+      if (settingsRes.success && settingsRes.data) setAppSettings(settingsRes.data);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -130,8 +149,8 @@ export default function Dashboard() {
   }, [refreshCategories]);
 
   const handleSettingsUpdate = useCallback(() => {
-    refreshSummaries();
-  }, [refreshSummaries]);
+    Promise.all([refreshSummaries(), refreshProfile(), refreshAppSettings()]);
+  }, [refreshSummaries, refreshProfile, refreshAppSettings]);
 
   const totalIncome = summaries.reduce((sum, s) => sum + s.totalIncome, 0);
   const totalExpense = summaries.reduce((sum, s) => sum + s.totalExpense, 0);
@@ -154,6 +173,8 @@ export default function Dashboard() {
           refreshTransactions(),
           refreshCategories(),
           refreshDebts(),
+          refreshProfile(),
+          refreshAppSettings(),
         ]);
       }}>
         <div className="min-h-screen bg-background">
@@ -313,7 +334,14 @@ export default function Dashboard() {
           })()}
 
           {!initialLoading && activeTab === 'settings' && (
-            <SettingsPanel users={users} onUpdate={handleSettingsUpdate} />
+            <SettingsPanel
+              users={users}
+              currentUser={currentUser}
+              appSettings={appSettings}
+              onUpdate={handleSettingsUpdate}
+              onProfileRefresh={refreshProfile}
+              onSettingsRefresh={refreshAppSettings}
+            />
           )}
 
           <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}></div>

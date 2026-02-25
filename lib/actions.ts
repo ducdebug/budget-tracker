@@ -342,13 +342,16 @@ export async function getBudgetStatus(): Promise<ActionResult<BudgetStatus[]>> {
                     };
                 });
 
+                const sumOfUserLimits = perUser.reduce((sum, u) => sum + u.limit, 0);
+                const overallLimit = sumOfUserLimits > 0 ? sumOfUserLimits : cat.monthly_limit;
+
                 return {
                     category: cat,
                     spent,
-                    limit: cat.monthly_limit,
+                    limit: overallLimit,
                     percentage:
-                        cat.monthly_limit > 0
-                            ? Math.round((spent / cat.monthly_limit) * 100)
+                        overallLimit > 0
+                            ? Math.round((spent / overallLimit) * 100)
                             : 0,
                     perUser,
                 };

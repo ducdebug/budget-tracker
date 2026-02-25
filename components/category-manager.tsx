@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Trash2, Pencil, Check } from 'lucide-react';
-import { addCategory, deleteCategory, updateCategory, getBudgetStatus } from '@/lib/actions';
+import { Plus, X, Trash2, Pencil, Check, Users } from 'lucide-react';
+import { addCategory, deleteCategory, updateCategory, getBudgetStatus, upsertUserCategoryLimit } from '@/lib/actions';
 import type { Category, BudgetStatus } from '@/lib/types';
 
 const POPULAR_ICONS = [
@@ -22,9 +22,10 @@ const POPULAR_ICONS = [
 interface CategoryManagerProps {
     categories: Category[];
     onUpdate: () => void;
+    currentUserId: string;
 }
 
-export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) {
+export function CategoryManager({ categories, onUpdate, currentUserId }: CategoryManagerProps) {
     const [showAddForm, setShowAddForm] = useState(false);
     const [newName, setNewName] = useState('');
     const [newIcon, setNewIcon] = useState('');
@@ -42,6 +43,7 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
     const [editLimit, setEditLimit] = useState('');
     const [showEditIconPicker, setShowEditIconPicker] = useState(false);
     const [savingEdit, setSavingEdit] = useState(false);
+    const [editingUserLimits, setEditingUserLimits] = useState<Record<string, string>>({});
 
     const [budgets, setBudgets] = useState<BudgetStatus[]>([]);
 
@@ -132,6 +134,12 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
         setEditLimit(cat.monthly_limit?.toString() || '0');
         setShowEditIconPicker(false);
         setError('');
+        const budget = getBudgetForCategory(cat.id);
+        const userLimits: Record<string, string> = {};
+        budget?.perUser?.forEach(u => {
+            userLimits[u.userId] = u.limit.toString();
+        });
+        setEditingUserLimits(userLimits);
     };
 
     const cancelEdit = () => {
@@ -148,32 +156,32 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
         setSavingEdit(true);
         setError('');
 
-        const updates: { name?: string; icon?: string; monthly_limit?: number } = {};
+        const updates: { name?: string; icon?: string } = {};
         if (editName.trim() !== cat.name) updates.name = editName.trim();
         if (editIcon !== cat.icon) updates.icon = editIcon;
+
+        if (Object.keys(updates).length > 0) {
+            await updateCategory(cat.id, updates);
+        }
+
+        // Save only current user's limit
         if (cat.type === 'expense') {
-            const newLimitVal = parseInt(editLimit) || 0;
-            if (newLimitVal !== cat.monthly_limit) updates.monthly_limit = newLimitVal;
+            const budget = getBudgetForCategory(cat.id);
+            const currentUserBudget = (budget?.perUser || []).find(u => u.userId === currentUserId);
+            if (currentUserBudget) {
+                const newUserLimit = parseInt(editingUserLimits[currentUserId] || '0') || 0;
+                if (newUserLimit !== currentUserBudget.limit) {
+                    await upsertUserCategoryLimit(currentUserId, cat.id, newUserLimit);
+                }
+            }
         }
 
-        if (Object.keys(updates).length === 0) {
-            cancelEdit();
-            setSavingEdit(false);
-            return;
-        }
-
-        const result = await updateCategory(cat.id, updates);
         setSavingEdit(false);
-
-        if (result.success) {
-            cancelEdit();
-            setSuccessMsg('✅ Đã cập nhật danh mục!');
-            onUpdate();
-            fetchBudgets();
-            setTimeout(() => setSuccessMsg(''), 3000);
-        } else {
-            setError(result.error || 'Lỗi khi cập nhật');
-        }
+        cancelEdit();
+        setSuccessMsg('✅ Đã cập nhật danh mục!');
+        onUpdate();
+        fetchBudgets();
+        setTimeout(() => setSuccessMsg(''), 3000);
     };
 
     const USER_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981'];
@@ -183,7 +191,7 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
 
         const budget = getBudgetForCategory(cat.id);
         const spent = budget?.spent || 0;
-        const limit = cat.monthly_limit || 0;
+        const limit = budget?.limit || 0;
         const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
         const isOver = percentage >= 100;
         const isWarning = percentage >= 75 && percentage < 100;
@@ -226,11 +234,11 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
                                                     {u.percentage}%
                                                 </span>
                                             </>
-                                        ) : limit > 0 ? (
-                                            <span className="text-[9px] text-muted-foreground">
-                                                ({Math.round((u.spent / limit) * 100)}%)
+                                        ) : (
+                                            <span className="text-[9px] text-muted-foreground/50">
+                                                (chưa đặt)
                                             </span>
-                                        ) : null}
+                                        )}
                                     </div>
                                     {(u.limit > 0 || limit > 0) && (
                                         <div className="ml-3 w-[calc(100%-12px)] bg-gray-200 rounded-full h-1 overflow-hidden mt-0.5">
@@ -365,15 +373,43 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
 
                                     {cat.type === 'expense' && (
                                         <div>
-                                            <label className="text-[10px] text-muted-foreground font-medium mb-1 block">Hạn mức chung (₫)</label>
-                                            <input
-                                                type="number"
-                                                value={editLimit}
-                                                onChange={(e) => setEditLimit(e.target.value)}
-                                                className="w-full py-2 px-3 rounded-xl border border-border bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none text-sm shadow-sm"
-                                                min="0"
-                                                placeholder="0 = không đặt"
-                                            />
+                                            <label className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 mb-1.5">
+                                                <Users size={10} />
+                                                Hạn mức cá nhân (₫)
+                                            </label>
+                                            <div className="space-y-1.5">
+                                                {(getBudgetForCategory(cat.id)?.perUser || []).map((u, idx) => (
+                                                    <div key={u.userId} className="flex items-center gap-2">
+                                                        <div
+                                                            className="w-2 h-2 rounded-full flex-shrink-0"
+                                                            style={{ backgroundColor: USER_COLORS[idx % USER_COLORS.length] }}
+                                                        />
+                                                        <span className="text-[11px] text-foreground min-w-[60px] truncate">
+                                                            {u.userName}
+                                                        </span>
+                                                        {u.userId === currentUserId ? (
+                                                            <>
+                                                                <input
+                                                                    type="number"
+                                                                    value={editingUserLimits[u.userId] || '0'}
+                                                                    onChange={(e) => setEditingUserLimits(prev => ({
+                                                                        ...prev,
+                                                                        [u.userId]: e.target.value,
+                                                                    }))}
+                                                                    className="flex-1 py-1 px-2 rounded-lg border border-border bg-white focus:border-blue-400 focus:outline-none text-xs font-bold text-right"
+                                                                    min="0"
+                                                                    placeholder="0"
+                                                                />
+                                                                <span className="text-[10px] text-muted-foreground">₫</span>
+                                                            </>
+                                                        ) : (
+                                                            <span className="flex-1 text-xs font-bold text-right text-muted-foreground">
+                                                                {u.limit.toLocaleString()}₫
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -384,9 +420,9 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
                                             <span className="text-xl flex-shrink-0">{cat.icon}</span>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-semibold text-foreground truncate">{cat.name}</p>
-                                                {cat.type === 'expense' && cat.monthly_limit > 0 && (
+                                                {cat.type === 'expense' && (getBudgetForCategory(cat.id)?.limit || 0) > 0 && (
                                                     <p className="text-[10px] text-muted-foreground">
-                                                        Hạn mức: {cat.monthly_limit.toLocaleString()}₫
+                                                        Hạn mức: {(getBudgetForCategory(cat.id)?.limit || 0).toLocaleString()}₫
                                                     </p>
                                                 )}
                                             </div>

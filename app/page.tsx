@@ -93,34 +93,38 @@ export default function Dashboard() {
   const fetchAll = useCallback(async () => {
     setInitialLoading(true);
     try {
-      const [summaryRes, txRes, catRes, debtRes, profileRes, settingsRes] = await Promise.all(
-        [
-          getUsersSummary(),
-          getRecentTransactions(10),
-          getCategories(),
-          getDebts(),
-          getUserProfile(),
-          getAppSettings(),
-        ]
-      );
+      const [summaryRes, txRes, profileRes] = await Promise.all([
+        getUsersSummary(),
+        getRecentTransactions(10),
+        getUserProfile(),
+      ]);
 
       if (summaryRes.success && summaryRes.data) {
         setSummaries(summaryRes.data);
         setUsers(summaryRes.data.map((s) => s.user));
       }
       if (txRes.success && txRes.data) setTransactions(txRes.data);
-      if (catRes.success && catRes.data) setCategories(catRes.data);
-
-      if (debtRes.success && debtRes.data) setDebts(debtRes.data);
       if (profileRes.success && profileRes.data) {
         setCurrentUserId(profileRes.data.id);
         setCurrentUser(profileRes.data);
       }
-      if (settingsRes.success && settingsRes.data) setAppSettings(settingsRes.data);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.error('Failed to fetch essential data:', error);
     }
     setInitialLoading(false);
+    try {
+      const [catRes, debtRes, settingsRes] = await Promise.all([
+        getCategories(),
+        getDebts(),
+        getAppSettings(),
+      ]);
+
+      if (catRes.success && catRes.data) setCategories(catRes.data);
+      if (debtRes.success && debtRes.data) setDebts(debtRes.data);
+      if (settingsRes.success && settingsRes.data) setAppSettings(settingsRes.data);
+    } catch (error) {
+      console.error('Failed to fetch secondary data:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -242,7 +246,7 @@ export default function Dashboard() {
             <StatisticsPanel />
           )}
           {!initialLoading && users.length >= 2 && activeTab === 'categories' && (
-            <CategoryManager categories={categories} onUpdate={handleCategoryUpdate} />
+            <CategoryManager categories={categories} onUpdate={handleCategoryUpdate} currentUserId={currentUserId} />
           )}
 
           {!initialLoading && users.length >= 2 && activeTab === 'debt' && (() => {

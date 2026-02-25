@@ -16,15 +16,15 @@ const USER_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981'];
 interface BudgetOverviewProps {
     budgets: BudgetStatus[];
     onUpdate?: () => void;
+    currentUserId: string;
 }
 
-export function BudgetOverview({ budgets, onUpdate }: BudgetOverviewProps) {
+export function BudgetOverview({ budgets, onUpdate, currentUserId }: BudgetOverviewProps) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editLimit, setEditLimit] = useState('');
     const [editIcon, setEditIcon] = useState('');
     const [showIconPicker, setShowIconPicker] = useState(false);
     const [saving, setSaving] = useState(false);
-    // Per-user limit editing
     const [editingUserLimits, setEditingUserLimits] = useState<Record<string, string>>({});
 
     const startEdit = (budget: BudgetStatus) => {
@@ -48,22 +48,17 @@ export function BudgetOverview({ budgets, onUpdate }: BudgetOverviewProps) {
     const handleSave = async (budget: BudgetStatus) => {
         setSaving(true);
 
-        const catUpdates: { icon?: string; monthly_limit?: number } = {};
-        const newLimit = parseInt(editLimit) || 0;
-        if (newLimit !== budget.limit) catUpdates.monthly_limit = newLimit;
-        if (editIcon !== budget.category.icon) catUpdates.icon = editIcon;
-
-        if (Object.keys(catUpdates).length > 0) {
-            await updateCategory(budget.category.id, catUpdates);
+        if (editIcon !== budget.category.icon) {
+            await updateCategory(budget.category.id, { icon: editIcon });
         }
 
-        const userLimitPromises = budget.perUser.map(async (u) => {
-            const newUserLimit = parseInt(editingUserLimits[u.userId] || '0') || 0;
-            if (newUserLimit !== u.limit) {
-                await upsertUserCategoryLimit(u.userId, budget.category.id, newUserLimit);
+        const currentUserBudget = budget.perUser.find(u => u.userId === currentUserId);
+        if (currentUserBudget) {
+            const newUserLimit = parseInt(editingUserLimits[currentUserId] || '0') || 0;
+            if (newUserLimit !== currentUserBudget.limit) {
+                await upsertUserCategoryLimit(currentUserId, budget.category.id, newUserLimit);
             }
-        });
-        await Promise.all(userLimitPromises);
+        }
 
         setSaving(false);
         cancelEdit();
@@ -248,19 +243,6 @@ export function BudgetOverview({ budgets, onUpdate }: BudgetOverviewProps) {
 
                             {isEditing ? (
                                 <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
-                                    <div>
-                                        <label className="text-[10px] text-muted-foreground font-medium block mb-1">
-                                            🏷️ Hạn mức chung (₫)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={editLimit}
-                                            onChange={(e) => setEditLimit(e.target.value)}
-                                            className="w-full py-1.5 px-2.5 rounded-lg border border-border bg-muted/30 focus:border-primary focus:outline-none text-xs font-bold"
-                                            min="0"
-                                            placeholder="0 = không đặt"
-                                        />
-                                    </div>
 
                                     <div>
                                         <label className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 mb-1.5">
@@ -277,18 +259,26 @@ export function BudgetOverview({ budgets, onUpdate }: BudgetOverviewProps) {
                                                     <span className="text-[11px] text-foreground min-w-[60px] truncate">
                                                         {u.userName}
                                                     </span>
-                                                    <input
-                                                        type="number"
-                                                        value={editingUserLimits[u.userId] || '0'}
-                                                        onChange={(e) => setEditingUserLimits(prev => ({
-                                                            ...prev,
-                                                            [u.userId]: e.target.value,
-                                                        }))}
-                                                        className="flex-1 py-1 px-2 rounded-lg border border-border bg-muted/30 focus:border-primary focus:outline-none text-xs font-bold text-right"
-                                                        min="0"
-                                                        placeholder="0"
-                                                    />
-                                                    <span className="text-[10px] text-muted-foreground">₫</span>
+                                                    {u.userId === currentUserId ? (
+                                                        <>
+                                                            <input
+                                                                type="number"
+                                                                value={editingUserLimits[u.userId] || '0'}
+                                                                onChange={(e) => setEditingUserLimits(prev => ({
+                                                                    ...prev,
+                                                                    [u.userId]: e.target.value,
+                                                                }))}
+                                                                className="flex-1 py-1 px-2 rounded-lg border border-border bg-muted/30 focus:border-primary focus:outline-none text-xs font-bold text-right"
+                                                                min="0"
+                                                                placeholder="0"
+                                                            />
+                                                            <span className="text-[10px] text-muted-foreground">₫</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="flex-1 text-xs font-bold text-right text-muted-foreground">
+                                                            {u.limit.toLocaleString()}₫
+                                                        </span>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

@@ -4,11 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Eye, EyeOff, Mail, Lock, User, LogIn, UserPlus,
-    Loader2, Sparkles, KeyRound
+    Loader2
 } from 'lucide-react';
-import { signIn, signUp, signInWithMagicLink, getAppSettings } from '@/lib/auth-actions';
+import { signIn, signUp, getAppSettings } from '@/lib/auth-actions';
 
-type AuthMode = 'login' | 'register' | 'magic-link';
+type AuthMode = 'login' | 'register';
 
 export default function AuthPage() {
     return (
@@ -57,9 +57,7 @@ function AuthContent() {
         checkSettings();
     }, []);
 
-    const getSiteUrl = () => {
-        return window.location.origin;
-    };
+    const getSiteUrl = () => window.location.origin;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -68,14 +66,7 @@ function AuthContent() {
         setLoading(true);
 
         try {
-            if (mode === 'magic-link') {
-                const result = await signInWithMagicLink(email, getSiteUrl());
-                if (result.success) {
-                    setSuccess('📧 Đã gửi link đăng nhập! Kiểm tra email của bạn.');
-                } else {
-                    setError(result.error || 'Không thể gửi email');
-                }
-            } else if (mode === 'register') {
+            if (mode === 'register') {
                 if (!name.trim()) {
                     setError('Vui lòng nhập tên của bạn');
                     setLoading(false);
@@ -127,34 +118,10 @@ function AuthContent() {
                         Quản lý Chi tiêu
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        {mode === 'login' && 'Đăng nhập tài khoản'}
-                        {mode === 'register' && 'Tạo tài khoản mới'}
-                        {mode === 'magic-link' && 'Đăng nhập bằng email'}
+                        {mode === 'login' ? 'Đăng nhập tài khoản' : 'Tạo tài khoản mới'}
                     </p>
                 </div>
                 <div className="bg-card/80 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl shadow-black/5 p-6">
-                    <div className="flex rounded-2xl bg-muted/50 p-1 mb-5 gap-1">
-                        <button
-                            onClick={() => switchMode('login')}
-                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all ${mode === 'login'
-                                ? 'bg-card text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                        >
-                            <KeyRound size={12} className="inline mr-1" />
-                            Mật khẩu
-                        </button>
-                        <button
-                            onClick={() => switchMode('magic-link')}
-                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all ${mode === 'magic-link'
-                                ? 'bg-card text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                        >
-                            <Sparkles size={12} className="inline mr-1" />
-                            Magic Link
-                        </button>
-                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {mode === 'register' && (
@@ -192,45 +159,38 @@ function AuthContent() {
                                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
                             </div>
                         </div>
-                        {mode !== 'magic-link' && (
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                                    <Lock size={12} /> Mật khẩu
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="Nhập mật khẩu..."
-                                        className="w-full py-3 px-4 pl-11 pr-11 rounded-2xl border-2 border-border/50 bg-muted/30 focus:border-primary focus:outline-none transition-all text-sm font-medium placeholder:text-muted-foreground/50"
-                                        required
-                                        minLength={6}
-                                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                                    />
-                                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted/50 transition-colors"
-                                        tabIndex={-1}
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff size={16} className="text-muted-foreground" />
-                                        ) : (
-                                            <Eye size={16} className="text-muted-foreground" />
-                                        )}
-                                    </button>
-                                </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                <Lock size={12} /> Mật khẩu
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Nhập mật khẩu..."
+                                    className="w-full py-3 px-4 pl-11 pr-11 rounded-2xl border-2 border-border/50 bg-muted/30 focus:border-primary focus:outline-none transition-all text-sm font-medium placeholder:text-muted-foreground/50 [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
+                                    style={{ WebkitTextSecurity: showPassword ? 'none' : undefined } as any}
+                                    required
+                                    minLength={6}
+                                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                                />
+                                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted/50 transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff size={16} className="text-muted-foreground" />
+                                    ) : (
+                                        <Eye size={16} className="text-muted-foreground" />
+                                    )}
+                                </button>
                             </div>
-                        )}
-                        {mode === 'magic-link' && (
-                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl">
-                                <p className="text-xs text-blue-700 text-center">
-                                    ✨ Chúng tôi sẽ gửi link đăng nhập đến email của bạn. Không cần mật khẩu!
-                                </p>
-                            </div>
-                        )}
+                        </div>
+
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-2xl animate-in fade-in slide-in-from-top-1">
                                 <p className="text-sm text-red-600 font-medium text-center">{error}</p>
@@ -249,15 +209,11 @@ function AuthContent() {
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
                                     <Loader2 size={18} className="animate-spin" />
-                                    {mode === 'login' && 'Đang đăng nhập...'}
-                                    {mode === 'register' && 'Đang đăng ký...'}
-                                    {mode === 'magic-link' && 'Đang gửi...'}
+                                    {mode === 'login' ? 'Đang đăng nhập...' : 'Đang đăng ký...'}
                                 </span>
                             ) : (
                                 <span className="flex items-center justify-center gap-2">
-                                    {mode === 'login' && <><LogIn size={18} /> Đăng nhập</>}
-                                    {mode === 'register' && <><UserPlus size={18} /> Đăng ký</>}
-                                    {mode === 'magic-link' && <><Sparkles size={18} /> Gửi link đăng nhập</>}
+                                    {mode === 'login' ? <><LogIn size={18} /> Đăng nhập</> : <><UserPlus size={18} /> Đăng ký</>}
                                 </span>
                             )}
                         </button>
@@ -267,7 +223,7 @@ function AuthContent() {
                             <div className="w-full border-t border-border/50" />
                         </div>
                     </div>
-                    {mode === 'login' || mode === 'magic-link' ? (
+                    {mode === 'login' ? (
                         registrationEnabled ? (
                             <button
                                 onClick={() => switchMode('register')}

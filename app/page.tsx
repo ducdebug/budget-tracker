@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Header } from '@/components/header';
 import { BalanceCard } from '@/components/balance-card';
 import { CoupleOverview } from '@/components/couple-overview';
@@ -8,13 +8,15 @@ import { RecentActivities } from '@/components/recent-activities';
 import { BottomNav } from '@/components/bottom-nav';
 import { AddTransactionDrawer } from '@/components/add-transaction-drawer';
 import { MonthlyHistoryDrawer } from '@/components/monthly-history-drawer';
-import { StatisticsPanel } from '@/components/statistics-panel';
 import { DebtItem, AddDebtDrawer } from '@/components/debt-tracker';
 import { SettingsPanel } from '@/components/settings-panel';
-import { CategoryManager } from '@/components/category-manager';
 import { TransactionHistory } from '@/components/transaction-history';
 import { UncategorizedBanner } from '@/components/uncategorized-banner';
 import { PullToRefresh } from '@/components/pull-to-refresh';
+import { HomeSkeletonLoader, StatsSkeletonLoader, DebtSkeletonLoader } from '@/components/skeleton-loader';
+
+const StatisticsPanel = lazy(() => import('@/components/statistics-panel').then(m => ({ default: m.StatisticsPanel })));
+const CategoryManager = lazy(() => import('@/components/category-manager').then(m => ({ default: m.CategoryManager })));
 import {
   getUsersSummary,
   getRecentTransactions,
@@ -183,11 +185,7 @@ export default function Dashboard() {
       }}>
         <div className="min-h-screen bg-background">
           <Header />
-          {initialLoading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-            </div>
-          )}
+          {initialLoading && <HomeSkeletonLoader />}
           {!initialLoading && users.length < 2 && activeTab !== 'settings' && (
             <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-5 shadow-lg">
@@ -210,7 +208,7 @@ export default function Dashboard() {
           )}
 
           {!initialLoading && users.length >= 2 && activeTab === 'home' && (
-            <>
+            <div className="tab-content-enter" key="home">
               <div className="space-y-4 px-6 py-4">
                 <div className="flex gap-3">
                   {summaries.map((s, i) => (
@@ -239,14 +237,22 @@ export default function Dashboard() {
               <UncategorizedBanner categories={categories} onUpdate={() => { refreshTransactions(); refreshSummaries(); }} />
 
               <RecentActivities transactions={transactions} onViewAll={() => setShowHistory(true)} />
-            </>
+            </div>
           )}
 
           {!initialLoading && users.length >= 2 && activeTab === 'stats' && (
-            <StatisticsPanel />
+            <div className="tab-content-enter" key="stats">
+              <Suspense fallback={<StatsSkeletonLoader />}>
+                <StatisticsPanel />
+              </Suspense>
+            </div>
           )}
           {!initialLoading && users.length >= 2 && activeTab === 'categories' && (
-            <CategoryManager categories={categories} onUpdate={handleCategoryUpdate} currentUserId={currentUserId} />
+            <div className="tab-content-enter" key="categories">
+              <Suspense fallback={<StatsSkeletonLoader />}>
+                <CategoryManager categories={categories} onUpdate={handleCategoryUpdate} currentUserId={currentUserId} />
+              </Suspense>
+            </div>
           )}
 
           {!initialLoading && users.length >= 2 && activeTab === 'debt' && (() => {
@@ -305,7 +311,7 @@ export default function Dashboard() {
             };
 
             return (
-              <div className="px-6 py-4">
+              <div className="px-6 py-4 tab-content-enter" key="debt">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-foreground">📒 Sổ Nợ</h2>
                   <button
@@ -338,14 +344,16 @@ export default function Dashboard() {
           })()}
 
           {!initialLoading && activeTab === 'settings' && (
-            <SettingsPanel
-              users={users}
-              currentUser={currentUser}
-              appSettings={appSettings}
-              onUpdate={handleSettingsUpdate}
-              onProfileRefresh={refreshProfile}
-              onSettingsRefresh={refreshAppSettings}
-            />
+            <div className="tab-content-enter" key="settings">
+              <SettingsPanel
+                users={users}
+                currentUser={currentUser}
+                appSettings={appSettings}
+                onUpdate={handleSettingsUpdate}
+                onProfileRefresh={refreshProfile}
+                onSettingsRefresh={refreshAppSettings}
+              />
+            </div>
           )}
 
           <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}></div>

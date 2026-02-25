@@ -1,4 +1,7 @@
+'use client';
+
 import { ArrowDown, ArrowUp } from 'lucide-react';
+import { useState } from 'react';
 
 interface BalanceCardProps {
   name: string;
@@ -31,9 +34,12 @@ export function BalanceCard({
   avatarUrl,
   bgColor,
 }: BalanceCardProps) {
+  const [showFull, setShowFull] = useState(false);
+
   return (
     <div
-      className={`flex-1 rounded-3xl p-5 flex flex-col items-center gap-3 border-2 border-dashed border-muted ${bgColor} shadow-sm`}
+      className={`flex-1 rounded-3xl p-5 flex flex-col items-center gap-3 border-2 border-dashed border-muted ${bgColor} shadow-sm transition-transform duration-200 active:scale-[0.97]`}
+      onClick={() => setShowFull(!showFull)}
     >
       <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-md overflow-hidden">
         {avatarUrl ? (
@@ -53,8 +59,8 @@ export function BalanceCard({
 
       <div className="text-center">
         <p className="text-xs text-muted-foreground font-medium">Số dư của {name}</p>
-        <p className="text-2xl font-bold text-foreground mt-0.5">
-          {formatVND(balance)}{' '}
+        <p className="text-2xl font-bold text-foreground mt-0.5 animate-count">
+          {showFull ? balance.toLocaleString() : formatVND(balance)}{' '}
           <span className="text-xs font-medium">₫</span>
         </p>
       </div>
@@ -65,7 +71,7 @@ export function BalanceCard({
             <ArrowUp size={14} className="text-green-600" />
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            +{formatVND(income)}
+            +{showFull ? income.toLocaleString() : formatVND(income)}
           </p>
         </div>
         <div className="w-px bg-border"></div>
@@ -74,7 +80,7 @@ export function BalanceCard({
             <ArrowDown size={14} className="text-red-600" />
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            -{formatVND(expense)}
+            -{showFull ? expense.toLocaleString() : formatVND(expense)}
           </p>
         </div>
       </div>

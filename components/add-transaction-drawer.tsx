@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Check } from 'lucide-react';
 import { addTransaction } from '@/lib/actions';
 import type { Category } from '@/lib/types';
 
@@ -26,12 +26,21 @@ export function AddTransactionDrawer({
     const [note, setNote] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const filteredCategories = categories.filter((cat) => cat.type === type);
 
     useEffect(() => {
         setCategoryId('');
     }, [type]);
+
+    const formattedPreview = useMemo(() => {
+        const num = parseInt(amount);
+        if (!amount || isNaN(num) || num === 0) return null;
+        if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M ₫`;
+        if (num >= 1_000) return `${(num / 1_000).toFixed(0)}K ₫`;
+        return `${num.toLocaleString()} ₫`;
+    }, [amount]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -54,11 +63,15 @@ export function AddTransactionDrawer({
         setLoading(false);
 
         if (result.success) {
-            setAmount('');
-            setNote('');
-            setCategoryId('');
-            onSuccess();
-            onClose();
+            setShowSuccess(true);
+            setTimeout(() => {
+                setShowSuccess(false);
+                setAmount('');
+                setNote('');
+                setCategoryId('');
+                onSuccess();
+                onClose();
+            }, 600);
         } else {
             setError(result.error || 'Lỗi khi thêm giao dịch');
         }
@@ -128,6 +141,11 @@ export function AddTransactionDrawer({
                                 min="1"
                                 required
                             />
+                            {formattedPreview && (
+                                <p className="text-center text-sm font-semibold text-primary mt-1.5 animate-count">
+                                    {type === 'expense' ? '−' : '+'}{formattedPreview}
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -173,13 +191,20 @@ export function AddTransactionDrawer({
                             </p>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:opacity-90 transition-all disabled:opacity-50 active:scale-[0.98]"
-                        >
-                            {loading ? '⏳ Đang lưu...' : `✅ Thêm ${type === 'expense' ? 'chi tiêu' : 'thu nhập'}`}
-                        </button>
+                        {showSuccess ? (
+                            <div className="w-full py-4 rounded-2xl bg-green-500 text-white font-bold text-base shadow-lg flex items-center justify-center gap-2 animate-success-pop">
+                                <Check size={20} strokeWidth={3} />
+                                Đã thêm thành công!
+                            </div>
+                        ) : (
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg hover:opacity-90 transition-all disabled:opacity-50 active:scale-[0.98]"
+                            >
+                                {loading ? '⏳ Đang lưu...' : `✅ Thêm ${type === 'expense' ? 'chi tiêu' : 'thu nhập'}`}
+                            </button>
+                        )}
                     </form>
                 </div>
             </div>

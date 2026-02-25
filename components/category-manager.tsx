@@ -176,6 +176,8 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
         }
     };
 
+    const USER_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981'];
+
     const renderBudgetBar = (cat: Category) => {
         if (cat.type !== 'expense') return null;
 
@@ -185,35 +187,106 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
         const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
         const isOver = percentage >= 100;
         const isWarning = percentage >= 75 && percentage < 100;
+        const perUser = budget?.perUser || [];
+        const activeUsers = perUser.filter(u => u.spent > 0);
 
         return (
             <div className="mt-2 pt-2 border-t border-border/50">
+                {perUser.length > 0 && (
+                    <div className="space-y-1.5 mb-1.5">
+                        {perUser.filter(u => u.spent > 0 || u.limit > 0).map((u, idx) => {
+                            const userIsOver = u.percentage >= 100;
+                            const userIsWarning = u.percentage >= 75 && u.percentage < 100;
+                            const barColor = u.limit > 0
+                                ? userIsOver ? '#ef4444' : USER_COLORS[idx % USER_COLORS.length]
+                                : USER_COLORS[idx % USER_COLORS.length];
+                            const barWidth = u.limit > 0
+                                ? Math.min(u.percentage, 100)
+                                : (limit > 0 ? Math.min((u.spent / limit) * 100, 100) : 0);
+
+                            return (
+                                <div key={u.userId}>
+                                    <div className="flex items-center gap-1.5">
+                                        <div
+                                            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: USER_COLORS[idx % USER_COLORS.length] }}
+                                        />
+                                        <span className="text-[10px] text-muted-foreground truncate min-w-0 flex-1">
+                                            {u.userName}
+                                        </span>
+                                        <span className="text-[10px] font-semibold text-foreground">
+                                            {u.spent.toLocaleString()}₫
+                                        </span>
+                                        {u.limit > 0 ? (
+                                            <>
+                                                <span className="text-[9px] text-muted-foreground">
+                                                    / {u.limit.toLocaleString()}₫
+                                                </span>
+                                                <span className={`text-[9px] font-bold ${userIsOver ? 'text-red-500' : userIsWarning ? 'text-amber-500' : 'text-green-500'}`}>
+                                                    {u.percentage}%
+                                                </span>
+                                            </>
+                                        ) : limit > 0 ? (
+                                            <span className="text-[9px] text-muted-foreground">
+                                                ({Math.round((u.spent / limit) * 100)}%)
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    {(u.limit > 0 || limit > 0) && (
+                                        <div className="ml-3 w-[calc(100%-12px)] bg-gray-200 rounded-full h-1 overflow-hidden mt-0.5">
+                                            <div
+                                                className="h-full rounded-full transition-all duration-500"
+                                                style={{
+                                                    width: `${barWidth}%`,
+                                                    backgroundColor: barColor,
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
                 <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] text-muted-foreground">
-                        Đã chi: {spent.toLocaleString()}₫
+                        Tổng: {spent.toLocaleString()}₫
                     </span>
                     <span className="text-[10px] text-muted-foreground">
                         {limit > 0 ? (
-                            <>Hạn mức: {limit.toLocaleString()}₫</>
+                            <>Hạn mức chung: {limit.toLocaleString()}₫</>
                         ) : (
                             <span className="text-muted-foreground/50">Chưa đặt hạn mức</span>
                         )}
                     </span>
                 </div>
                 {limit > 0 ? (
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                            className={`h-full rounded-full transition-all duration-500 ${isOver
-                                ? 'bg-red-500'
-                                : isWarning
-                                    ? 'bg-amber-400'
-                                    : 'bg-green-400'
-                                }`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
-                        />
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden flex">
+                        {activeUsers.map((u, idx) => {
+                            const userWidth = limit > 0 ? Math.min((u.spent / limit) * 100, 100) : 0;
+                            const totalSoFar = activeUsers
+                                .slice(0, idx + 1)
+                                .reduce((s, x) => s + x.spent, 0);
+                            const cappedWidth = totalSoFar > limit
+                                ? Math.max(0, userWidth - ((totalSoFar - limit) / limit) * 100)
+                                : userWidth;
+                            return (
+                                <div
+                                    key={u.userId}
+                                    className="h-full transition-all duration-500 first:rounded-l-full last:rounded-r-full"
+                                    style={{
+                                        width: `${cappedWidth}%`,
+                                        backgroundColor: isOver
+                                            ? '#ef4444'
+                                            : USER_COLORS[perUser.findIndex(pu => pu.userId === u.userId) % USER_COLORS.length],
+                                    }}
+                                />
+                            );
+                        })}
                     </div>
                 ) : (
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                         <div className="h-full rounded-full bg-gray-300" style={{ width: '0%' }} />
                     </div>
                 )}
@@ -243,12 +316,12 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
                     {cats.map((cat) => (
                         <div key={cat.id}>
                             {editingId === cat.id ? (
-                                <div className="bg-card rounded-2xl p-3 border-2 border-primary/30 shadow-md space-y-2">
+                                <div className="bg-blue-50/50 rounded-2xl p-3.5 border border-blue-200 shadow-sm space-y-2.5 overflow-hidden">
                                     <div className="flex items-center gap-2">
                                         <button
                                             type="button"
                                             onClick={() => setShowEditIconPicker(!showEditIconPicker)}
-                                            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-xl hover:bg-muted/80 transition-colors flex-shrink-0"
+                                            className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center text-xl hover:bg-muted/50 transition-colors flex-shrink-0 shadow-sm"
                                         >
                                             {editIcon}
                                         </button>
@@ -256,22 +329,22 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
                                             type="text"
                                             value={editName}
                                             onChange={(e) => setEditName(e.target.value)}
-                                            className="flex-1 py-2 px-2.5 rounded-xl border border-border bg-muted/30 focus:border-primary focus:outline-none text-sm font-medium"
+                                            className="flex-1 min-w-0 py-2 px-3 rounded-xl border border-border bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none text-sm font-medium shadow-sm"
                                         />
                                         <button
                                             onClick={() => handleSaveEdit(cat)}
                                             disabled={savingEdit}
-                                            className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-50"
+                                            className="p-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 shadow-sm flex-shrink-0"
                                         >
                                             <Check size={14} />
                                         </button>
-                                        <button onClick={cancelEdit} className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors">
+                                        <button onClick={cancelEdit} className="p-2 rounded-xl bg-white border border-border text-gray-500 hover:bg-gray-50 transition-colors shadow-sm flex-shrink-0">
                                             <X size={14} />
                                         </button>
                                     </div>
 
                                     {showEditIconPicker && (
-                                        <div className="p-2 bg-muted/50 rounded-xl border border-border max-h-36 overflow-y-auto">
+                                        <div className="p-2.5 bg-white rounded-xl border border-border max-h-36 overflow-y-auto shadow-sm">
                                             <div className="grid grid-cols-8 gap-1">
                                                 {POPULAR_ICONS.map((icon) => (
                                                     <button
@@ -281,7 +354,7 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
                                                             setEditIcon(icon);
                                                             setShowEditIconPicker(false);
                                                         }}
-                                                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-base transition-all hover:scale-110 ${editIcon === icon ? 'bg-primary/20 ring-2 ring-primary' : 'hover:bg-card'}`}
+                                                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-base transition-all hover:scale-110 ${editIcon === icon ? 'bg-blue-100 ring-2 ring-blue-400' : 'hover:bg-gray-100'}`}
                                                     >
                                                         {icon}
                                                     </button>
@@ -292,13 +365,14 @@ export function CategoryManager({ categories, onUpdate }: CategoryManagerProps) 
 
                                     {cat.type === 'expense' && (
                                         <div>
-                                            <label className="text-[10px] text-muted-foreground">Hạn mức (₫)</label>
+                                            <label className="text-[10px] text-muted-foreground font-medium mb-1 block">Hạn mức chung (₫)</label>
                                             <input
                                                 type="number"
                                                 value={editLimit}
                                                 onChange={(e) => setEditLimit(e.target.value)}
-                                                className="w-full py-1.5 px-2.5 rounded-xl border border-border bg-muted/30 focus:border-primary focus:outline-none text-sm"
+                                                className="w-full py-2 px-3 rounded-xl border border-border bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none text-sm shadow-sm"
                                                 min="0"
+                                                placeholder="0 = không đặt"
                                             />
                                         </div>
                                     )}

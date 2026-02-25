@@ -12,6 +12,7 @@ interface CategoryStat {
     icon: string;
     amount: number;
     color: string;
+    perUser: { userId: string; userName: string; amount: number }[];
 }
 
 interface MonthlyComparison {
@@ -19,6 +20,8 @@ interface MonthlyComparison {
     label: string;
     users: { userId: string; userName: string; expense: number; color: string }[];
 }
+
+const USER_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981'];
 
 export function StatisticsPanel() {
     const [categoryStats, setCategoryStats] = useState<CategoryStat[]>([]);
@@ -42,6 +45,10 @@ export function StatisticsPanel() {
 
     const totalExpense = categoryStats.reduce((sum, s) => sum + s.amount, 0);
 
+    const allUsers = categoryStats.length > 0
+        ? categoryStats[0].perUser.map(u => u.userName)
+        : [];
+
     const barData = monthlyData.map(m => {
         const entry: any = { label: m.label };
         m.users.forEach(u => {
@@ -62,9 +69,20 @@ export function StatisticsPanel() {
                 <p className="text-sm font-semibold text-foreground">
                     {data.icon} {data.category}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mb-1">
                     {data.amount.toLocaleString()}₫ ({percent}%)
                 </p>
+                {data.perUser && data.perUser.filter((u: any) => u.amount > 0).map((u: any, idx: number) => (
+                    <div key={u.userId} className="flex items-center gap-1.5">
+                        <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: USER_COLORS[idx % USER_COLORS.length] }}
+                        />
+                        <span className="text-[11px] text-muted-foreground">
+                            {u.userName}: {u.amount.toLocaleString()}₫
+                        </span>
+                    </div>
+                ))}
             </div>
         );
     };
@@ -84,7 +102,7 @@ export function StatisticsPanel() {
     };
 
     const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, icon, amount }: any) => {
-        if (totalExpense > 0 && (amount / totalExpense) < 0.05) return null; // Hide labels for very small slices
+        if (totalExpense > 0 && (amount / totalExpense) < 0.05) return null;
         const RADIAN = Math.PI / 180;
         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
         const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -135,6 +153,35 @@ export function StatisticsPanel() {
                             <p className="text-xs text-muted-foreground">Tổng chi tiêu</p>
                         </div>
 
+                        {allUsers.length > 0 && (
+                            <div className="flex items-center justify-center gap-4 mb-3">
+                                {allUsers.map((userName, idx) => {
+                                    const userTotal = categoryStats.reduce((sum, stat) => {
+                                        const userEntry = stat.perUser.find(u => u.userName === userName);
+                                        return sum + (userEntry?.amount || 0);
+                                    }, 0);
+                                    const userPercent = totalExpense > 0
+                                        ? ((userTotal / totalExpense) * 100).toFixed(1)
+                                        : '0';
+                                    return (
+                                        <div key={userName} className="text-center">
+                                            <div className="flex items-center gap-1.5 justify-center mb-0.5">
+                                                <div
+                                                    className="w-2.5 h-2.5 rounded-full"
+                                                    style={{ backgroundColor: USER_COLORS[idx % USER_COLORS.length] }}
+                                                />
+                                                <span className="text-xs font-medium text-foreground">{userName}</span>
+                                            </div>
+                                            <p className="text-sm font-bold" style={{ color: USER_COLORS[idx % USER_COLORS.length] }}>
+                                                {userTotal.toLocaleString()}₫
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground">{userPercent}%</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         <div className="w-full h-[220px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -165,28 +212,58 @@ export function StatisticsPanel() {
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 mt-3">
+                        <div className="space-y-2 mt-3">
                             {categoryStats.map((stat, i) => {
                                 const percent = totalExpense > 0
                                     ? ((stat.amount / totalExpense) * 100).toFixed(1)
                                     : '0';
+                                const activePerUser = stat.perUser.filter(u => u.amount > 0);
                                 return (
                                     <div
                                         key={i}
-                                        className="flex items-center gap-2 p-2 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors"
+                                        className="p-2.5 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors"
                                     >
-                                        <div
-                                            className="w-3 h-3 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: stat.color }}
-                                        />
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-medium text-foreground truncate">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div
+                                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                                style={{ backgroundColor: stat.color }}
+                                            />
+                                            <p className="text-xs font-medium text-foreground truncate flex-1">
                                                 {stat.icon} {stat.category}
                                             </p>
-                                            <p className="text-[10px] text-muted-foreground">
-                                                {stat.amount.toLocaleString()}₫ · {percent}%
+                                            <p className="text-xs font-semibold text-foreground">
+                                                {stat.amount.toLocaleString()}₫
                                             </p>
+                                            <span className="text-[10px] text-muted-foreground">
+                                                {percent}%
+                                            </span>
                                         </div>
+                                        {activePerUser.length > 0 && (
+                                            <div className="ml-5 space-y-0.5">
+                                                {activePerUser.map((u, idx) => {
+                                                    const userPercent = stat.amount > 0
+                                                        ? ((u.amount / stat.amount) * 100).toFixed(0)
+                                                        : '0';
+                                                    return (
+                                                        <div key={u.userId} className="flex items-center gap-1.5">
+                                                            <div
+                                                                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                                                style={{ backgroundColor: USER_COLORS[idx % USER_COLORS.length] }}
+                                                            />
+                                                            <span className="text-[10px] text-muted-foreground flex-1 truncate">
+                                                                {u.userName}
+                                                            </span>
+                                                            <span className="text-[10px] font-medium text-foreground">
+                                                                {u.amount.toLocaleString()}₫
+                                                            </span>
+                                                            <span className="text-[9px] text-muted-foreground">
+                                                                ({userPercent}%)
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

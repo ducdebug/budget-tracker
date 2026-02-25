@@ -60,6 +60,22 @@ CREATE TABLE IF NOT EXISTS debts (
 CREATE INDEX IF NOT EXISTS idx_debts_user_status
   ON debts (user_id, status);
 
+CREATE TABLE IF NOT EXISTS user_category_limits (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+  monthly_limit BIGINT NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, category_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_category_limits_user
+  ON user_category_limits (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_category_limits_category
+  ON user_category_limits (category_id);
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -73,12 +89,18 @@ CREATE TRIGGER set_users_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER set_user_category_limits_updated_at
+  BEFORE UPDATE ON user_category_limits
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE debts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_category_limits ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can read all users" ON users FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = auth_id);
@@ -90,6 +112,8 @@ CREATE POLICY "Allow all on transactions" ON transactions FOR ALL USING (true) W
 
 -- Debts: everyone can read/write
 CREATE POLICY "Allow all on debts" ON debts FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow all on user_category_limits" ON user_category_limits FOR ALL USING (true) WITH CHECK (true);
 
 -- App settings: everyone can read, only admin can write
 CREATE POLICY "Anyone can read settings" ON app_settings FOR SELECT USING (true);

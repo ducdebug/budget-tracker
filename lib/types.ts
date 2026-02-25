@@ -51,17 +51,33 @@ export interface AppSettings {
 
 export interface UserFinanceSummary {
     user: User;
-    totalIncome: number;   
-    totalExpense: number;  
-    balance: number;       
-    savingRate: number;    
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+    savingRate: number;
 }
 
 export interface BudgetStatus {
     category: Category;
     spent: number;
     limit: number;
-    percentage: number; 
+    percentage: number;
+    perUser: {
+        userId: string;
+        userName: string;
+        spent: number;
+        limit: number;
+        percentage: number;
+    }[];
+}
+
+export interface UserCategoryLimit {
+    id: string;
+    user_id: string;
+    category_id: string;
+    monthly_limit: number;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface AddTransactionInput {
@@ -104,8 +120,8 @@ export interface ActionResult<T = void> {
 }
 
 export interface MonthlyHistory {
-    month: string; 
-    label: string; 
+    month: string;
+    label: string;
     totalIncome: number;
     totalExpense: number;
     netChange: number;

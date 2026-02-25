@@ -193,8 +193,8 @@ export async function getRecentTransactions(
 export async function getAllTransactions(filters?: {
     userId?: string;
     type?: 'income' | 'expense';
-    dateFrom?: string; 
-    dateTo?: string;   
+    dateFrom?: string;
+    dateTo?: string;
 }): Promise<ActionResult<Transaction[]>> {
     try {
         const supabase = await createClient();
@@ -302,27 +302,45 @@ export async function getBudgetStatus(): Promise<ActionResult<BudgetStatus[]>> {
         const supabase = await createClient();
         const { start, end } = getCurrentMonthRange();
 
-        const { data: categories, error: catError } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('type', 'expense');
+        const [catRes, txRes, usersRes, limitsRes] = await Promise.all([
+            supabase.from('categories').select('*').eq('type', 'expense'),
+            supabase.from('transactions').select('*').eq('type', 'expense')
+                .gte('created_at', start).lte('created_at', end),
+            supabase.from('users').select('id, name').order('name'),
+            supabase.from('user_category_limits').select('*'),
+        ]);
 
-        if (catError) throw catError;
+        if (catRes.error) throw catRes.error;
+        if (txRes.error) throw txRes.error;
+        if (usersRes.error) throw usersRes.error;
+        if (limitsRes.error) throw limitsRes.error;
 
-        const { data: transactions, error: txError } = await supabase
-            .from('transactions')
-            .select('*')
-            .eq('type', 'expense')
-            .gte('created_at', start)
-            .lte('created_at', end);
+        const categories = catRes.data || [];
+        const transactions = txRes.data || [];
+        const users = usersRes.data || [];
+        const userLimits = limitsRes.data || [];
 
-        if (txError) throw txError;
-
-        const budgets: BudgetStatus[] = (categories || []).map(
+        const budgets: BudgetStatus[] = categories.map(
             (cat: Category) => {
-                const spent = (transactions || [])
-                    .filter((tx: Transaction) => tx.category_id === cat.id)
-                    .reduce((sum: number, tx: Transaction) => sum + tx.amount, 0);
+                const catTx = transactions.filter((tx: Transaction) => tx.category_id === cat.id);
+                const spent = catTx.reduce((sum: number, tx: Transaction) => sum + tx.amount, 0);
+
+                const perUser = users.map((u: any) => {
+                    const userSpent = catTx
+                        .filter((tx: Transaction) => tx.user_id === u.id)
+                        .reduce((sum: number, tx: Transaction) => sum + tx.amount, 0);
+                    const userLimit = userLimits.find(
+                        (l: any) => l.user_id === u.id && l.category_id === cat.id
+                    );
+                    const limit = userLimit?.monthly_limit || 0;
+                    return {
+                        userId: u.id,
+                        userName: u.name,
+                        spent: userSpent,
+                        limit,
+                        percentage: limit > 0 ? Math.round((userSpent / limit) * 100) : 0,
+                    };
+                });
 
                 return {
                     category: cat,
@@ -332,6 +350,7 @@ export async function getBudgetStatus(): Promise<ActionResult<BudgetStatus[]>> {
                         cat.monthly_limit > 0
                             ? Math.round((spent / cat.monthly_limit) * 100)
                             : 0,
+                    perUser,
                 };
             }
         );
@@ -352,6 +371,26 @@ export async function updateCategory(
             .from('categories')
             .update(updates)
             .eq('id', id);
+        if (error) throw error;
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function upsertUserCategoryLimit(
+    userId: string,
+    categoryId: string,
+    monthlyLimit: number
+): Promise<ActionResult<void>> {
+    try {
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('user_category_limits')
+            .upsert(
+                { user_id: userId, category_id: categoryId, monthly_limit: monthlyLimit },
+                { onConflict: 'user_id,category_id' }
+            );
         if (error) throw error;
         return { success: true };
     } catch (error: any) {
@@ -613,33 +652,49 @@ export async function getCategoryExpenseStats(): Promise<ActionResult<{
     icon: string;
     amount: number;
     color: string;
+    perUser: { userId: string; userName: string; amount: number }[];
 }[]>> {
     try {
         const supabase = await createClient();
         const { start, end } = getCurrentMonthRange();
 
-        const { data: transactions, error: txError } = await supabase
-            .from('transactions')
-            .select('*, category:categories(*)')
-            .eq('type', 'expense')
-            .gte('created_at', start)
-            .lte('created_at', end);
+        const [txRes, usersRes] = await Promise.all([
+            supabase.from('transactions').select('*, category:categories(*)')
+                .eq('type', 'expense').gte('created_at', start).lte('created_at', end),
+            supabase.from('users').select('id, name').order('name'),
+        ]);
 
-        if (txError) throw txError;
+        if (txRes.error) throw txRes.error;
+        if (usersRes.error) throw usersRes.error;
 
-        const categoryMap = new Map<string, { name: string; icon: string; amount: number }>();
+        const transactions = txRes.data || [];
+        const users = usersRes.data || [];
 
-        for (const tx of transactions || []) {
+        const categoryMap = new Map<string, {
+            name: string;
+            icon: string;
+            amount: number;
+            userAmounts: Map<string, number>;
+        }>();
+
+        for (const tx of transactions) {
             const cat = tx.category;
             const key = cat?.id || 'unknown';
             const existing = categoryMap.get(key);
             if (existing) {
                 existing.amount += tx.amount;
+                existing.userAmounts.set(
+                    tx.user_id,
+                    (existing.userAmounts.get(tx.user_id) || 0) + tx.amount
+                );
             } else {
+                const userAmounts = new Map<string, number>();
+                userAmounts.set(tx.user_id, tx.amount);
                 categoryMap.set(key, {
                     name: cat?.name || 'Khác',
                     icon: cat?.icon || '❓',
                     amount: tx.amount,
+                    userAmounts,
                 });
             }
         }
@@ -657,6 +712,11 @@ export async function getCategoryExpenseStats(): Promise<ActionResult<{
                 icon: item.icon,
                 amount: item.amount,
                 color: COLORS[index % COLORS.length],
+                perUser: users.map((u: any) => ({
+                    userId: u.id,
+                    userName: u.name,
+                    amount: item.userAmounts.get(u.id) || 0,
+                })),
             }));
 
         return { success: true, data: result };

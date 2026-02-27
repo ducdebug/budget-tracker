@@ -121,7 +121,7 @@ export function SettingsPanel({ users, currentUser, appSettings, onUpdate, onPro
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-bold text-foreground">
-                                        {currentUser.total_balance.toLocaleString()} ₫
+                                        {currentUser.total_balance.toLocaleString('vi-VN')} ₫
                                     </span>
                                     {allowBalanceEdit ? (
                                         <button
@@ -174,7 +174,7 @@ export function SettingsPanel({ users, currentUser, appSettings, onUpdate, onPro
                                     )}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    Số dư: {otherUser.total_balance.toLocaleString()} ₫
+                                    Số dư: {otherUser.total_balance.toLocaleString('vi-VN')} ₫
                                 </p>
                             </div>
                         </div>

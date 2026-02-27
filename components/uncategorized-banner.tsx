@@ -92,7 +92,7 @@ export function UncategorizedBanner({ categories, onUpdate }: UncategorizedBanne
                                     <span className="text-lg">❓</span>
                                     <div>
                                         <p className="text-xs font-semibold text-foreground">
-                                            -{tx.amount.toLocaleString()}₫
+                                            -{tx.amount.toLocaleString('vi-VN')}₫
                                         </p>
                                         <p className="text-[10px] text-muted-foreground">
                                             {tx.note || 'Không có ghi chú'} · {formatTime(tx.created_at)}

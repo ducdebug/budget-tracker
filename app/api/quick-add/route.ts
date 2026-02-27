@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const msg = `✅ ${user.name}: -${parsedAmount.toLocaleString()}₫${note ? ' (' + note + ')' : ''}`;
+        const msg = `✅ ${user.name}: -${parsedAmount.toLocaleString('vi-VN')}₫${note ? ' (' + note + ')' : ''}`;
 
         return NextResponse.json({ success: true, message: msg });
 

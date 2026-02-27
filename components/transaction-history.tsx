@@ -234,12 +234,12 @@ export function TransactionHistory({ users, currentUserId, onBack }: Transaction
                 <div className="px-4 py-3 flex items-center gap-3 border-b border-border bg-muted/30">
                     <div className="flex-1 text-center">
                         <p className="text-[10px] text-muted-foreground font-semibold uppercase">Tổng thu</p>
-                        <p className="text-sm font-bold text-green-600">+{totalIncome.toLocaleString()}₫</p>
+                        <p className="text-sm font-bold text-green-600">+{totalIncome.toLocaleString('vi-VN')}₫</p>
                     </div>
                     <div className="w-px h-8 bg-border"></div>
                     <div className="flex-1 text-center">
                         <p className="text-[10px] text-muted-foreground font-semibold uppercase">Tổng chi</p>
-                        <p className="text-sm font-bold text-red-600">-{totalExpense.toLocaleString()}₫</p>
+                        <p className="text-sm font-bold text-red-600">-{totalExpense.toLocaleString('vi-VN')}₫</p>
                     </div>
                     <div className="w-px h-8 bg-border"></div>
                     <div className="flex-1 text-center">
@@ -295,7 +295,7 @@ export function TransactionHistory({ users, currentUserId, onBack }: Transaction
                                         <p className={`font-bold text-sm whitespace-nowrap ${tx.type === 'expense' ? 'text-red-600' : 'text-green-600'
                                             }`}>
                                             {tx.type === 'expense' ? '-' : '+'}
-                                            {tx.amount.toLocaleString()}₫
+                                            {tx.amount.toLocaleString('vi-VN')}₫
                                         </p>
                                     </div>
                                 ))}

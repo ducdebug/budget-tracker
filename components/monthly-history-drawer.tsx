@@ -17,7 +17,7 @@ function formatVND(value: number): string {
     if (Math.abs(value) >= 1000) {
         return `${(value / 1000).toFixed(0)}K`;
     }
-    return value.toLocaleString();
+    return value.toLocaleString('vi-VN');
 }
 
 export function MonthlyHistoryDrawer({ open, onClose }: MonthlyHistoryDrawerProps) {

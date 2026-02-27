@@ -70,7 +70,7 @@ export function StatisticsPanel() {
                     {data.icon} {data.category}
                 </p>
                 <p className="text-xs text-muted-foreground mb-1">
-                    {data.amount.toLocaleString()}₫ ({percent}%)
+                    {data.amount.toLocaleString('vi-VN')}₫ ({percent}%)
                 </p>
                 {data.perUser && data.perUser.filter((u: any) => u.amount > 0).map((u: any, idx: number) => (
                     <div key={u.userId} className="flex items-center gap-1.5">
@@ -79,7 +79,7 @@ export function StatisticsPanel() {
                             style={{ backgroundColor: USER_COLORS[idx % USER_COLORS.length] }}
                         />
                         <span className="text-[11px] text-muted-foreground">
-                            {u.userName}: {u.amount.toLocaleString()}₫
+                            {u.userName}: {u.amount.toLocaleString('vi-VN')}₫
                         </span>
                     </div>
                 ))}
@@ -94,7 +94,7 @@ export function StatisticsPanel() {
                 <p className="text-xs font-bold text-foreground mb-1">{label}</p>
                 {payload.map((entry: any, i: number) => (
                     <p key={i} className="text-xs" style={{ color: entry.color }}>
-                        {entry.name}: {entry.value.toLocaleString()}₫
+                        {entry.name}: {entry.value.toLocaleString('vi-VN')}₫
                     </p>
                 ))}
             </div>
@@ -148,7 +148,7 @@ export function StatisticsPanel() {
                     <>
                         <div className="text-center mb-2">
                             <p className="text-2xl font-bold text-foreground">
-                                {totalExpense.toLocaleString()}₫
+                                {totalExpense.toLocaleString('vi-VN')}₫
                             </p>
                             <p className="text-xs text-muted-foreground">Tổng chi tiêu</p>
                         </div>
@@ -173,7 +173,7 @@ export function StatisticsPanel() {
                                                 <span className="text-xs font-medium text-foreground">{userName}</span>
                                             </div>
                                             <p className="text-sm font-bold" style={{ color: USER_COLORS[idx % USER_COLORS.length] }}>
-                                                {userTotal.toLocaleString()}₫
+                                                {userTotal.toLocaleString('vi-VN')}₫
                                             </p>
                                             <p className="text-[10px] text-muted-foreground">{userPercent}%</p>
                                         </div>
@@ -232,7 +232,7 @@ export function StatisticsPanel() {
                                                 {stat.icon} {stat.category}
                                             </p>
                                             <p className="text-xs font-semibold text-foreground">
-                                                {stat.amount.toLocaleString()}₫
+                                                {stat.amount.toLocaleString('vi-VN')}₫
                                             </p>
                                             <span className="text-[10px] text-muted-foreground">
                                                 {percent}%
@@ -254,7 +254,7 @@ export function StatisticsPanel() {
                                                                 {u.userName}
                                                             </span>
                                                             <span className="text-[10px] font-medium text-foreground">
-                                                                {u.amount.toLocaleString()}₫
+                                                                {u.amount.toLocaleString('vi-VN')}₫
                                                             </span>
                                                             <span className="text-[9px] text-muted-foreground">
                                                                 ({userPercent}%)
@@ -357,14 +357,14 @@ export function StatisticsPanel() {
                                         {currentMonth.users.map(u => (
                                             <div key={u.userId} className="text-center">
                                                 <p className="text-sm font-bold" style={{ color: u.color }}>
-                                                    {u.expense.toLocaleString()}₫
+                                                    {u.expense.toLocaleString('vi-VN')}₫
                                                 </p>
                                                 <p className="text-[10px] text-muted-foreground">{u.userName}</p>
                                             </div>
                                         ))}
                                         <div className="text-center">
                                             <p className="text-sm font-bold text-foreground">
-                                                {total.toLocaleString()}₫
+                                                {total.toLocaleString('vi-VN')}₫
                                             </p>
                                             <p className="text-[10px] text-muted-foreground">Tổng cộng</p>
                                         </div>

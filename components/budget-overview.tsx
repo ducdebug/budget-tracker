@@ -180,11 +180,11 @@ export function BudgetOverview({ budgets, onUpdate, currentUserId }: BudgetOverv
                                                     {u.userName}
                                                 </span>
                                                 <span className="text-[11px] font-semibold text-foreground">
-                                                    {u.spent.toLocaleString()}₫
+                                                    {u.spent.toLocaleString('vi-VN')}₫
                                                 </span>
                                                 {u.limit > 0 ? (
                                                     <span className="text-[10px] text-muted-foreground">
-                                                        / {u.limit.toLocaleString()}₫
+                                                        / {u.limit.toLocaleString('vi-VN')}₫
                                                     </span>
                                                 ) : (
                                                     <span className="text-[9px] text-muted-foreground/50">
@@ -218,7 +218,7 @@ export function BudgetOverview({ budgets, onUpdate, currentUserId }: BudgetOverv
                                             Tổng nhóm
                                         </span>
                                         <span className="text-[10px] text-muted-foreground">
-                                            {budget.spent.toLocaleString()}₫ / {budget.limit.toLocaleString()}₫
+                                            {budget.spent.toLocaleString('vi-VN')}₫ / {budget.limit.toLocaleString('vi-VN')}₫
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden flex">
@@ -276,7 +276,7 @@ export function BudgetOverview({ budgets, onUpdate, currentUserId }: BudgetOverv
                                                         </>
                                                     ) : (
                                                         <span className="flex-1 text-xs font-bold text-right text-muted-foreground">
-                                                            {u.limit.toLocaleString()}₫
+                                                            {u.limit.toLocaleString('vi-VN')}₫
                                                         </span>
                                                     )}
                                                 </div>

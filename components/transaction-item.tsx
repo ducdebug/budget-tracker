@@ -34,7 +34,7 @@ export function TransactionItem({
       </div>
       <p className={`font-bold text-sm ${amountColor} whitespace-nowrap`}>
         {type === 'expense' ? '-' : '+'}
-        {amount.toLocaleString()} ₫
+        {amount.toLocaleString('vi-VN')} ₫
       </p>
     </div>
   );

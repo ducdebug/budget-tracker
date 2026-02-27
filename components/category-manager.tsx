@@ -223,12 +223,12 @@ export function CategoryManager({ categories, onUpdate, currentUserId }: Categor
                                             {u.userName}
                                         </span>
                                         <span className="text-[10px] font-semibold text-foreground">
-                                            {u.spent.toLocaleString()}₫
+                                            {u.spent.toLocaleString('vi-VN')}₫
                                         </span>
                                         {u.limit > 0 ? (
                                             <>
                                                 <span className="text-[9px] text-muted-foreground">
-                                                    / {u.limit.toLocaleString()}₫
+                                                    / {u.limit.toLocaleString('vi-VN')}₫
                                                 </span>
                                                 <span className={`text-[9px] font-bold ${userIsOver ? 'text-red-500' : userIsWarning ? 'text-amber-500' : 'text-green-500'}`}>
                                                     {u.percentage}%
@@ -259,11 +259,11 @@ export function CategoryManager({ categories, onUpdate, currentUserId }: Categor
 
                 <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] text-muted-foreground">
-                        Tổng: {spent.toLocaleString()}₫
+                        Tổng: {spent.toLocaleString('vi-VN')}₫
                     </span>
                     <span className="text-[10px] text-muted-foreground">
                         {limit > 0 ? (
-                            <>Hạn mức chung: {limit.toLocaleString()}₫</>
+                            <>Hạn mức chung: {limit.toLocaleString('vi-VN')}₫</>
                         ) : (
                             <span className="text-muted-foreground/50">Chưa đặt hạn mức</span>
                         )}
@@ -404,7 +404,7 @@ export function CategoryManager({ categories, onUpdate, currentUserId }: Categor
                                                             </>
                                                         ) : (
                                                             <span className="flex-1 text-xs font-bold text-right text-muted-foreground">
-                                                                {u.limit.toLocaleString()}₫
+                                                                {u.limit.toLocaleString('vi-VN')}₫
                                                             </span>
                                                         )}
                                                     </div>
@@ -422,7 +422,7 @@ export function CategoryManager({ categories, onUpdate, currentUserId }: Categor
                                                 <p className="text-xs font-semibold text-foreground truncate">{cat.name}</p>
                                                 {cat.type === 'expense' && (getBudgetForCategory(cat.id)?.limit || 0) > 0 && (
                                                     <p className="text-[10px] text-muted-foreground">
-                                                        Hạn mức: {(getBudgetForCategory(cat.id)?.limit || 0).toLocaleString()}₫
+                                                        Hạn mức: {(getBudgetForCategory(cat.id)?.limit || 0).toLocaleString('vi-VN')}₫
                                                     </p>
                                                 )}
                                             </div>

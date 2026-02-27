@@ -203,7 +203,7 @@ export function DebtItem({ debt, onResolve, resolving, showResolveButton = true 
             </div>
             <div className="text-right flex items-center gap-2">
                 <p className="font-bold text-sm text-foreground whitespace-nowrap">
-                    {debt.amount.toLocaleString()} ₫
+                    {debt.amount.toLocaleString('vi-VN')} ₫
                 </p>
                 {debt.status === 'pending' && showResolveButton && (
                     <button

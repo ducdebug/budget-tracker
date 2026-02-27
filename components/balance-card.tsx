@@ -21,7 +21,7 @@ function formatVND(value: number): string {
   if (value >= 1000) {
     return `${(value / 1000).toFixed(0)}K`;
   }
-  return value.toLocaleString();
+  return value.toLocaleString('vi-VN');
 }
 
 export function BalanceCard({
@@ -60,7 +60,7 @@ export function BalanceCard({
       <div className="text-center">
         <p className="text-xs text-muted-foreground font-medium">Số dư của {name}</p>
         <p className="text-2xl font-bold text-foreground mt-0.5 animate-count">
-          {showFull ? balance.toLocaleString() : formatVND(balance)}{' '}
+          {showFull ? balance.toLocaleString('vi-VN') : formatVND(balance)}{' '}
           <span className="text-xs font-medium">₫</span>
         </p>
       </div>
@@ -71,7 +71,7 @@ export function BalanceCard({
             <ArrowUp size={14} className="text-green-600" />
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            +{showFull ? income.toLocaleString() : formatVND(income)}
+            +{showFull ? income.toLocaleString('vi-VN') : formatVND(income)}
           </p>
         </div>
         <div className="w-px bg-border"></div>
@@ -80,7 +80,7 @@ export function BalanceCard({
             <ArrowDown size={14} className="text-red-600" />
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            -{showFull ? expense.toLocaleString() : formatVND(expense)}
+            -{showFull ? expense.toLocaleString('vi-VN') : formatVND(expense)}
           </p>
         </div>
       </div>

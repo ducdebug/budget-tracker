@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Shield, ToggleLeft, ToggleRight, Loader2, AlertTriangle, Wallet } from 'lucide-react';
-import { toggleRegistration, toggleBalanceEdit } from '@/lib/auth-actions';
+import { Shield, ToggleLeft, ToggleRight, Loader2, AlertTriangle, Wallet, Lock } from 'lucide-react';
+import { toggleRegistration, toggleBalanceEdit, updateStashName } from '@/lib/auth-actions';
 import type { AppSettings } from '@/lib/types';
 
 interface AdminSettingsProps {
@@ -15,6 +15,8 @@ export function AdminSettings({ appSettings, onUpdate }: AdminSettingsProps) {
     const [savingBalance, setSavingBalance] = useState(false);
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+    const [savingStashName, setSavingStashName] = useState(false);
+    const [stashNameInput, setStashNameInput] = useState(appSettings.stash_name || 'Két sắt');
 
     const registrationEnabled = appSettings.registration_enabled;
     const balanceEditEnabled = appSettings.allow_balance_edit;
@@ -60,6 +62,23 @@ export function AdminSettings({ appSettings, onUpdate }: AdminSettingsProps) {
             onUpdate?.();
         } else {
             setError(result.error || 'Lỗi khi cập nhật cài đặt');
+        }
+    };
+
+    const handleUpdateStashName = async () => {
+        if (!stashNameInput.trim() || stashNameInput === appSettings.stash_name) return;
+        setSavingStashName(true);
+        setError('');
+
+        const result = await updateStashName(stashNameInput.trim());
+        setSavingStashName(false);
+
+        if (result.success) {
+            setSuccessMsg(`✅ Đã cập nhật tên két sắt thành "${stashNameInput.trim()}"`);
+            setTimeout(() => setSuccessMsg(''), 4000);
+            onUpdate?.();
+        } else {
+            setError(result.error || 'Lỗi khi cập nhật tên két sắt');
         }
     };
 
@@ -152,6 +171,31 @@ export function AdminSettings({ appSettings, onUpdate }: AdminSettingsProps) {
                         </p>
                     </div>
                 )}
+            </div>
+
+            <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <Lock size={14} className="text-primary" />
+                        <p className="text-sm font-semibold text-foreground">Tên của két sắt (Stash)</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={stashNameInput}
+                            onChange={(e) => setStashNameInput(e.target.value)}
+                            placeholder="Nhập tên két sắt..."
+                            className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                        <button
+                            onClick={handleUpdateStashName}
+                            disabled={savingStashName || stashNameInput === appSettings.stash_name || !stashNameInput.trim()}
+                            className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50 active:scale-95 transition-all flex items-center gap-1"
+                        >
+                            {savingStashName ? <Loader2 size={16} className="animate-spin" /> : 'Lưu'}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

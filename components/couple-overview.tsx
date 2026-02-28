@@ -7,6 +7,7 @@ interface CoupleOverviewProps {
     monthlyIncome: number;
     monthlyExpense: number;
     onOpenHistory: () => void;
+    onOpenStash?: () => void;
 }
 
 function formatVND(value: number): string {
@@ -24,6 +25,7 @@ export function CoupleOverview({
     monthlyIncome,
     monthlyExpense,
     onOpenHistory,
+    onOpenStash,
 }: CoupleOverviewProps) {
     const monthlyNet = monthlyIncome - monthlyExpense;
 
@@ -36,7 +38,10 @@ export function CoupleOverview({
                 </div>
 
                 <div className="text-center mb-4">
-                    <p className="text-3xl font-bold text-foreground">
+                    <p
+                        className="text-3xl font-bold text-foreground cursor-pointer select-none"
+                        onDoubleClick={onOpenStash}
+                    >
                         {formatVND(totalBalance)}{' '}
                         <span className="text-sm font-medium">₫</span>
                     </p>

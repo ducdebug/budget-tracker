@@ -15,6 +15,7 @@ export async function getAppSettings(): Promise<ActionResult<AppSettings>> {
         const settings: AppSettings = {
             registration_enabled: true,
             allow_balance_edit: true,
+            stash_name: 'Két sắt',
         };
 
         (data || []).forEach((row: { key: string; value: string }) => {
@@ -23,6 +24,9 @@ export async function getAppSettings(): Promise<ActionResult<AppSettings>> {
             }
             if (row.key === 'allow_balance_edit') {
                 settings.allow_balance_edit = row.value === 'true';
+            }
+            if (row.key === 'stash_name') {
+                settings.stash_name = row.value;
             }
         });
 
@@ -75,6 +79,7 @@ export async function signUp(
                     avatar: '👤',
                     avatar_url: null,
                     total_balance: 0,
+                    stashed_amount: 0,
                     is_admin: false,
                 });
 
@@ -291,6 +296,38 @@ export async function toggleBalanceEdit(
         return { success: true };
     } catch (error: any) {
         console.error('toggleBalanceEdit error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateStashName(
+    newName: string
+): Promise<ActionResult> {
+    try {
+        const supabase = await createClient();
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Chưa đăng nhập');
+
+        const { data: profile } = await supabase
+            .from('users')
+            .select('is_admin')
+            .eq('auth_id', user.id)
+            .single();
+
+        if (!profile?.is_admin) {
+            return { success: false, error: 'Bạn không có quyền quản trị' };
+        }
+
+        const { error } = await supabase
+            .from('app_settings')
+            .update({ value: newName, updated_at: new Date().toISOString() })
+            .eq('key', 'stash_name');
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error: any) {
+        console.error('updateStashName error:', error);
         return { success: false, error: error.message };
     }
 }

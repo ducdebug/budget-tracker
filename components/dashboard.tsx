@@ -12,6 +12,7 @@ import { HomeSkeletonLoader, StatsSkeletonLoader, DebtSkeletonLoader } from '@/c
 
 const AddTransactionDrawer = lazy(() => import('@/components/add-transaction-drawer').then(m => ({ default: m.AddTransactionDrawer })));
 const MonthlyHistoryDrawer = lazy(() => import('@/components/monthly-history-drawer').then(m => ({ default: m.MonthlyHistoryDrawer })));
+const StashDrawer = lazy(() => import('@/components/stash-drawer').then(m => ({ default: m.StashDrawer })));
 const DebtItem = lazy(() => import('@/components/debt-tracker').then(m => ({ default: m.DebtItem })));
 const AddDebtDrawer = lazy(() => import('@/components/debt-tracker').then(m => ({ default: m.AddDebtDrawer })));
 const SettingsPanel = lazy(() => import('@/components/settings-panel').then(m => ({ default: m.SettingsPanel })));
@@ -58,8 +59,8 @@ export default function Dashboard({
   const [showAddDebt, setShowAddDebt] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showMonthlyHistory, setShowMonthlyHistory] = useState(false);
+  const [showStash, setShowStash] = useState(false);
 
-  // Initialize with server-fetched data — no loading spinner needed!
   const [summaries, setSummaries] = useState<UserFinanceSummary[]>(initialSummaries);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
@@ -135,6 +136,7 @@ export default function Dashboard({
   const totalIncome = summaries.reduce((sum, s) => sum + s.totalIncome, 0);
   const totalExpense = summaries.reduce((sum, s) => sum + s.totalExpense, 0);
   const totalBalance = summaries.reduce((sum, s) => sum + s.balance, 0);
+  const totalStashed = summaries.reduce((sum, s) => sum + (s.user.stashed_amount || 0), 0);
 
   if (showHistory) {
     return (
@@ -192,7 +194,7 @@ export default function Dashboard({
                     <BalanceCard
                       key={s.user.id}
                       name={s.user.name}
-                      balance={s.balance}
+                      balance={s.balance - (s.user.stashed_amount || 0)}
                       income={s.totalIncome}
                       expense={s.totalExpense}
                       avatar={i === 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-pink-400 to-pink-600'}
@@ -205,10 +207,11 @@ export default function Dashboard({
               </div>
 
               <CoupleOverview
-                totalBalance={totalBalance}
+                totalBalance={totalBalance - totalStashed}
                 monthlyIncome={totalIncome}
                 monthlyExpense={totalExpense}
                 onOpenHistory={() => setShowMonthlyHistory(true)}
+                onOpenStash={() => setShowStash(true)}
               />
 
               <UncategorizedBanner categories={categories} onUpdate={() => { refreshTransactions(); refreshSummaries(); }} />
@@ -366,6 +369,17 @@ export default function Dashboard({
           onSuccess={handleDebtSuccess}
           users={users}
           currentUserId={currentUserId}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <StashDrawer
+          open={showStash}
+          onClose={() => setShowStash(false)}
+          users={users}
+          currentUserId={currentUserId}
+          appSettings={appSettings}
+          onSuccess={() => { refreshSummaries(); refreshProfile(); }}
         />
       </Suspense>
 

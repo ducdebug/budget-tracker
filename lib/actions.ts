@@ -123,6 +123,39 @@ export async function updateUser(
     }
 }
 
+export async function updateStashedAmount(
+    amount: number
+): Promise<ActionResult> {
+    try {
+        const supabase = await createClient();
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Chưa đăng nhập');
+
+        const { data: profile } = await supabase
+            .from('users')
+            .select('id, stashed_amount')
+            .eq('auth_id', user.id)
+            .single();
+
+        if (!profile) throw new Error('User not found');
+
+        const { error } = await supabase
+            .from('users')
+            .update({
+                stashed_amount: profile.stashed_amount + amount,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', profile.id);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error: any) {
+        console.error('updateStashedAmount error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function addTransaction(
     input: AddTransactionInput
 ): Promise<ActionResult<Transaction>> {

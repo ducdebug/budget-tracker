@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar        TEXT DEFAULT '👤',
   avatar_url    TEXT DEFAULT NULL,    
   total_balance BIGINT NOT NULL DEFAULT 0,
+  stashed_amount BIGINT NOT NULL DEFAULT 0,
   is_admin      BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -19,7 +20,8 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 INSERT INTO app_settings (key, value) VALUES
   ('registration_enabled', 'true'),
-  ('allow_balance_edit', 'true')
+  ('allow_balance_edit', 'true'),
+  ('stash_name', 'Két sắt')
 ON CONFLICT (key) DO NOTHING;
 CREATE TABLE IF NOT EXISTS categories (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),

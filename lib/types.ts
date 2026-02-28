@@ -6,6 +6,7 @@ export interface User {
     avatar: string;
     avatar_url: string | null;
     total_balance: number;
+    stashed_amount: number;
     is_admin: boolean;
     created_at: string;
     updated_at: string;
@@ -47,6 +48,7 @@ export interface Debt {
 export interface AppSettings {
     registration_enabled: boolean;
     allow_balance_edit: boolean;
+    stash_name: string;
 }
 
 export interface UserFinanceSummary {

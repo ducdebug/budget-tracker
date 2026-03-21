@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Home, Clock, BookOpen, Settings, Plus } from 'lucide-react';
 
 interface BottomNavProps {
@@ -20,6 +20,110 @@ export function BottomNav({ activeTab, onTabChange, onFabClick }: BottomNavProps
   const navRef = useRef<HTMLDivElement>(null);
   const [ind, setInd] = useState({ left: 0, width: 0 });
 
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const translateRef = useRef(translate);
+  
+  useEffect(() => {
+    translateRef.current = translate;
+  }, [translate]);
+
+  const dragRef = useRef({
+    isDragging: false,
+    hasMoved: false,
+    startX: 0,
+    startY: 0,
+    startTransX: 0,
+    startTransY: 0
+  });
+
+  useEffect(() => {
+    const val = localStorage.getItem('fabOffset');
+    if (val) {
+      try { setTranslate(JSON.parse(val)); } catch(e) {}
+    }
+  }, []);
+
+  const onTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    const x = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const y = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+    dragRef.current.hasMoved = false;
+    dragRef.current.startX = x;
+    dragRef.current.startY = y;
+    dragRef.current.startTransX = translateRef.current.x;
+    dragRef.current.startTransY = translateRef.current.y;
+    dragRef.current.isDragging = false;
+    
+    setIsDragging(true);
+  };
+
+  const onTouchMove = useCallback((e: TouchEvent | MouseEvent) => {
+    const x = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
+    const y = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
+
+    if (!dragRef.current.isDragging) {
+      if (Math.abs(x - dragRef.current.startX) > 5 || Math.abs(y - dragRef.current.startY) > 5) {
+        dragRef.current.isDragging = true;
+      } else {
+        return;
+      }
+    }
+    
+    e.preventDefault();
+
+    let newX = dragRef.current.startTransX + (x - dragRef.current.startX);
+    let newY = dragRef.current.startTransY + (y - dragRef.current.startY);
+
+    const maxX = 10;
+    const minX = - (typeof window !== 'undefined' ? window.innerWidth : 400) + 70;
+    const maxY = 40; 
+    const minY = - (typeof window !== 'undefined' ? window.innerHeight : 800) + 120;
+
+    newX = Math.max(minX, Math.min(newX, maxX));
+    newY = Math.max(minY, Math.min(newY, maxY));
+
+    setTranslate({ x: newX, y: newY });
+    dragRef.current.hasMoved = true;
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    setIsDragging(false);
+
+    if (dragRef.current.isDragging || dragRef.current.hasMoved) {
+      dragRef.current.isDragging = false;
+      localStorage.setItem('fabOffset', JSON.stringify(translateRef.current));
+      
+      setTimeout(() => {
+        dragRef.current.hasMoved = false;
+      }, 100);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      window.addEventListener('mousemove', onTouchMove, { passive: false });
+      window.addEventListener('touchend', onTouchEnd);
+      window.addEventListener('mouseup', onTouchEnd);
+      return () => {
+        window.removeEventListener('touchmove', onTouchMove);
+        window.removeEventListener('mousemove', onTouchMove);
+        window.removeEventListener('touchend', onTouchEnd);
+        window.removeEventListener('mouseup', onTouchEnd);
+      };
+    }
+  }, [isDragging, onTouchMove, onTouchEnd]);
+
+  const onFabClickHandler = (e: React.MouseEvent) => {
+    if (dragRef.current.hasMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    onFabClick();
+  };
+
   useEffect(() => {
     if (!navRef.current) return;
     const idx = navItems.findIndex(i => i.id === activeTab);
@@ -35,9 +139,16 @@ export function BottomNav({ activeTab, onTabChange, onFabClick }: BottomNavProps
     <>
       {(activeTab === 'home' || activeTab === 'debt') && (
         <button
-          onClick={onFabClick}
-          className="fixed z-40 w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom,0px) + 72px)', right: '20px' }}
+          onClick={onFabClickHandler}
+          onTouchStart={onTouchStart}
+          onMouseDown={onTouchStart}
+          className={`fixed z-40 w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg ${isDragging ? 'scale-110 opacity-95 cursor-grabbing' : 'active:scale-90 cursor-pointer transition-transform duration-200'}`}
+          style={{ 
+            bottom: 'calc(env(safe-area-inset-bottom,0px) + 72px)', 
+            right: '20px',
+            transform: `translate(${translate.x}px, ${translate.y}px)`,
+            touchAction: 'none'
+          }}
         >
           <Plus size={26} className="text-white" strokeWidth={2.5} />
         </button>

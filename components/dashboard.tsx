@@ -180,7 +180,7 @@ export default function Dashboard({
                         <span className="text-sm font-bold text-amber-600">{otherSummary?.user.avatar || 'U'}</span>
                       )}
                     </div>
-                    <p className="text-[11px] sm:text-xs text-muted-foreground font-bold truncate uppercase max-w-[75px] sm:max-w-[100px]">
+                    <p className="text-[11px] sm:text-xs text-muted-foreground font-bold truncate max-w-[75px] sm:max-w-[100px]">
                       {otherSummary?.user.name || '—'}
                     </p>
                   </div>

@@ -167,10 +167,8 @@ export default function Dashboard({
     <>
       {activeTab === 'home' && (
         <div className="h-screen max-w-md mx-auto relative overflow-hidden bg-[#FFF9FA] dark:bg-background">
-          {/* Floating Header */}
           <div className="absolute top-0 left-0 right-0 z-20 pt-[calc(env(safe-area-inset-top)+1rem)] px-4 pb-2 w-full pointer-events-none">
             <div className="flex items-stretch bg-card/90 dark:bg-card/80 backdrop-blur-2xl rounded-[28px] overflow-hidden border border-rose-100/80 dark:border-border/50 shadow-lg shadow-rose-100/30 dark:shadow-black/20 pointer-events-auto">
-              {/* Left: other user */}
               <div className="flex-1 px-4 py-3.5 text-left relative overflow-hidden transition-colors">
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent pointer-events-none" />
                 <div className="relative z-10">
@@ -197,7 +195,6 @@ export default function Dashboard({
                 </div>
               </div>
 
-              {/* Divider with Refresh Button */}
               <div className="w-px bg-border/40 my-4 relative flex items-center justify-center">
                 <button
                   onClick={handleRefreshData}
@@ -210,7 +207,6 @@ export default function Dashboard({
                 </button>
               </div>
 
-              {/* Right: current user */}
               <div className="flex-1 px-4 py-3.5 text-right relative overflow-hidden transition-colors">
                 <div className="absolute inset-0 bg-gradient-to-bl from-primary/10 to-transparent pointer-events-none" />
                 <div className="relative z-10 flex flex-col items-end">
@@ -222,7 +218,7 @@ export default function Dashboard({
                         <span className="text-sm font-bold text-primary">{currentSummary?.user.avatar || 'U'}</span>
                       )}
                     </div>
-                    <p className="text-[11px] sm:text-xs text-primary font-bold truncate uppercase max-w-[75px] sm:max-w-[100px]">
+                    <p className="text-[11px] sm:text-xs text-primary font-bold truncate max-w-[75px] sm:max-w-[100px]">
                       {currentSummary?.user.name || '—'}
                     </p>
                   </div>

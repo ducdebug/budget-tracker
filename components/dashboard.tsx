@@ -182,7 +182,7 @@ export default function Dashboard({
                         <span className="text-sm font-bold text-amber-600">{otherSummary?.user.avatar || 'U'}</span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground font-semibold truncate uppercase tracking-wider">
+                    <p className="text-[11px] sm:text-xs text-muted-foreground font-bold truncate uppercase max-w-[75px] sm:max-w-[100px]">
                       {otherSummary?.user.name || '—'}
                     </p>
                   </div>
@@ -222,7 +222,7 @@ export default function Dashboard({
                         <span className="text-sm font-bold text-primary">{currentSummary?.user.avatar || 'U'}</span>
                       )}
                     </div>
-                    <p className="text-sm text-primary font-bold truncate uppercase tracking-wider">
+                    <p className="text-[11px] sm:text-xs text-primary font-bold truncate uppercase max-w-[75px] sm:max-w-[100px]">
                       {currentSummary?.user.name || '—'}
                     </p>
                   </div>
@@ -240,7 +240,7 @@ export default function Dashboard({
           </div>
 
           {/* Scrollable chat area */}
-          <div ref={chatRef} className="h-full overflow-y-auto px-4 space-y-4 pt-[150px]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 90px)' }}>
+          <div ref={chatRef} className="h-full overflow-y-auto overscroll-y-none px-4 space-y-4 pt-[calc(env(safe-area-inset-top)+180px)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 90px)' }}>
             {currentMonthTx.length === 0 && (
               <div className="flex flex-col items-center justify-center h-[70%] gap-3 text-muted-foreground">
                 <div className="w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center mb-2 animate-pulse">

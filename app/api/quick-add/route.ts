@@ -53,12 +53,46 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { amount, note } = body;
+        let parsedAmount = 0;
+        let finalNote = '';
         const type = body.type || 'expense';
 
-        if (!amount) {
+        if (body.text) {
+            const str = String(body.text).trim();
+            const words = str.split(/\s+/);
+            
+            let amountFound = false;
+            let noteWords: string[] = [];
+
+            for (const word of words) {
+                if (!amountFound && /^[0-9]+([.,][0-9]+)?[kKmM]?$/.test(word)) {
+                    let w = word.toLowerCase().replace(',', '.');
+                    let val = 0;
+                    if (w.endsWith('m')) val = parseFloat(w) * 1000000;
+                    else if (w.endsWith('k')) val = parseFloat(w) * 1000;
+                    else val = parseFloat(w);
+
+                    if (val > 0 && val < 5000 && !w.endsWith('k') && !w.endsWith('m')) {
+                        val = val * 1000;
+                    }
+                    parsedAmount = val;
+                    amountFound = true;
+                } else {
+                    noteWords.push(word);
+                }
+            }
+            finalNote = noteWords.join(' ');
+        } else {
+            parsedAmount = parseInt(body.amount);
+            if (parsedAmount > 0 && parsedAmount < 5000) {
+                parsedAmount = parsedAmount * 1000;
+            }
+            finalNote = body.note || '';
+        }
+
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
             return NextResponse.json(
-                { success: false, error: 'Missing required field: amount' },
+                { success: false, error: 'Vui lòng cung cấp số tiền hợp lệ (vd: 50, 50k, 1.5m)' },
                 { status: 400 }
             );
         }
@@ -70,13 +104,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const parsedAmount = parseInt(amount);
-        if (isNaN(parsedAmount) || parsedAmount <= 0) {
-            return NextResponse.json(
-                { success: false, error: 'Amount must be a positive number' },
-                { status: 400 }
-            );
-        }
+
 
         const supabase = getSupabaseAdmin();
 
@@ -93,42 +121,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const categoryName = type === 'expense' ? 'Chưa phân loại' : 'Thu nhập khác';
-        let { data: category } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('name', categoryName)
-            .eq('type', type)
-            .single();
-
-        if (!category) {
-            const { data: newCat, error: catError } = await supabase
-                .from('categories')
-                .insert({
-                    name: categoryName,
-                    icon: type === 'expense' ? '❓' : '💵',
-                    type: type,
-                    monthly_limit: 0,
-                })
-                .select('id')
-                .single();
-
-            if (catError || !newCat) {
-                return NextResponse.json(
-                    { success: false, error: 'Failed to create default category' },
-                    { status: 500 }
-                );
-            }
-            category = newCat;
-        }
-
         const { data: tx, error: txError } = await supabase
             .from('transactions')
             .insert({
                 user_id: user.id,
-                category_id: category.id,
                 amount: parsedAmount,
                 type: type,
+                note: finalNote,
             })
             .select()
             .single();
@@ -162,7 +161,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const msg = `✅ ${user.name}: -${parsedAmount.toLocaleString('vi-VN')}₫${note ? ' (' + note + ')' : ''}`;
+        const msg = `✅ ${user.name}: -${parsedAmount.toLocaleString('vi-VN')}₫${finalNote ? ' (' + finalNote + ')' : ''}`;
 
         return NextResponse.json({ success: true, message: msg });
 

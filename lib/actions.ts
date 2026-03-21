@@ -4,15 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import type {
     User,
     UserFinanceSummary,
-    BudgetStatus,
     Transaction,
-    Category,
     Debt,
     MonthlyHistory,
+    MonthlyBalanceSummary,
     AddTransactionInput,
     AddDebtInput,
     UpdateUserInput,
-    AddCategoryInput,
     ActionResult,
 } from '@/lib/types';
 
@@ -156,6 +154,20 @@ export async function updateStashedAmount(
     }
 }
 
+export async function addTransactionSimple(input: {
+    user_id: string;
+    amount: number;
+    type: 'income' | 'expense';
+    note?: string;
+}): Promise<ActionResult<Transaction>> {
+    return addTransaction({
+        user_id: input.user_id,
+        amount: input.amount,
+        type: input.type,
+        note: input.note || '',
+    });
+}
+
 export async function addTransaction(
     input: AddTransactionInput
 ): Promise<ActionResult<Transaction>> {
@@ -165,7 +177,6 @@ export async function addTransaction(
             .from('transactions')
             .insert({
                 user_id: input.user_id,
-                category_id: input.category_id,
                 amount: input.amount,
                 type: input.type,
                 note: input.note || '',
@@ -212,7 +223,7 @@ export async function getRecentTransactions(
 
         const { data, error } = await supabase
             .from('transactions')
-            .select('*, category:categories(*), user:users(*)')
+            .select('*, user:users(*)')
             .order('created_at', { ascending: false })
             .limit(limit);
 
@@ -234,7 +245,7 @@ export async function getAllTransactions(filters?: {
 
         let query = supabase
             .from('transactions')
-            .select('*, category:categories(*), user:users(*)')
+            .select('*, user:users(*)')
             .order('created_at', { ascending: false });
 
         if (filters?.userId) {
@@ -260,238 +271,7 @@ export async function getAllTransactions(filters?: {
     }
 }
 
-export async function getCategories(): Promise<ActionResult<Category[]>> {
-    try {
-        const supabase = await createClient();
 
-        const { data, error } = await supabase
-            .from('categories')
-            .select('*')
-            .order('type', { ascending: true })
-            .order('name', { ascending: true });
-
-        if (error) throw error;
-        return { success: true, data: data || [] };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
-
-export async function addCategory(
-    input: AddCategoryInput
-): Promise<ActionResult<Category>> {
-    try {
-        const supabase = await createClient();
-
-        const { data, error } = await supabase
-            .from('categories')
-            .insert({
-                name: input.name,
-                icon: input.icon,
-                type: input.type,
-                monthly_limit: input.type === 'expense' ? (input.monthly_limit || 0) : 0,
-            })
-            .select()
-            .single();
-
-        if (error) throw error;
-        return { success: true, data };
-    } catch (error: any) {
-        console.error('addCategory error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-export async function deleteCategory(
-    categoryId: string
-): Promise<ActionResult<void>> {
-    try {
-        const supabase = await createClient();
-
-        const { count } = await supabase
-            .from('transactions')
-            .select('*', { count: 'exact', head: true })
-            .eq('category_id', categoryId);
-
-        if (count && count > 0) {
-            return { success: false, error: `Cannot delete: ${count} transactions use this category` };
-        }
-
-        const { error } = await supabase
-            .from('categories')
-            .delete()
-            .eq('id', categoryId);
-
-        if (error) throw error;
-        return { success: true };
-    } catch (error: any) {
-        console.error('deleteCategory error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-export async function getBudgetStatus(): Promise<ActionResult<BudgetStatus[]>> {
-    try {
-        const supabase = await createClient();
-        const { start, end } = getCurrentMonthRange();
-
-        const [catRes, txRes, usersRes, limitsRes] = await Promise.all([
-            supabase.from('categories').select('*').eq('type', 'expense'),
-            supabase.from('transactions').select('*').eq('type', 'expense')
-                .gte('created_at', start).lte('created_at', end),
-            supabase.from('users').select('id, name').order('name'),
-            supabase.from('user_category_limits').select('*'),
-        ]);
-
-        if (catRes.error) throw catRes.error;
-        if (txRes.error) throw txRes.error;
-        if (usersRes.error) throw usersRes.error;
-        if (limitsRes.error) throw limitsRes.error;
-
-        const categories = catRes.data || [];
-        const transactions = txRes.data || [];
-        const users = usersRes.data || [];
-        const userLimits = limitsRes.data || [];
-
-        const budgets: BudgetStatus[] = categories.map(
-            (cat: Category) => {
-                const catTx = transactions.filter((tx: Transaction) => tx.category_id === cat.id);
-                const spent = catTx.reduce((sum: number, tx: Transaction) => sum + tx.amount, 0);
-
-                const perUser = users.map((u: any) => {
-                    const userSpent = catTx
-                        .filter((tx: Transaction) => tx.user_id === u.id)
-                        .reduce((sum: number, tx: Transaction) => sum + tx.amount, 0);
-                    const userLimit = userLimits.find(
-                        (l: any) => l.user_id === u.id && l.category_id === cat.id
-                    );
-                    const limit = userLimit?.monthly_limit || 0;
-                    return {
-                        userId: u.id,
-                        userName: u.name,
-                        spent: userSpent,
-                        limit,
-                        percentage: limit > 0 ? Math.round((userSpent / limit) * 100) : 0,
-                    };
-                });
-
-                const sumOfUserLimits = perUser.reduce((sum, u) => sum + u.limit, 0);
-                const overallLimit = sumOfUserLimits > 0 ? sumOfUserLimits : cat.monthly_limit;
-
-                return {
-                    category: cat,
-                    spent,
-                    limit: overallLimit,
-                    percentage:
-                        overallLimit > 0
-                            ? Math.round((spent / overallLimit) * 100)
-                            : 0,
-                    perUser,
-                };
-            }
-        );
-
-        return { success: true, data: budgets };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
-
-export async function updateCategory(
-    id: string,
-    updates: { name?: string; icon?: string; monthly_limit?: number }
-): Promise<ActionResult<void>> {
-    try {
-        const supabase = await createClient();
-        const { error } = await supabase
-            .from('categories')
-            .update(updates)
-            .eq('id', id);
-        if (error) throw error;
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
-
-export async function upsertUserCategoryLimit(
-    userId: string,
-    categoryId: string,
-    monthlyLimit: number
-): Promise<ActionResult<void>> {
-    try {
-        const supabase = await createClient();
-        const { error } = await supabase
-            .from('user_category_limits')
-            .upsert(
-                { user_id: userId, category_id: categoryId, monthly_limit: monthlyLimit },
-                { onConflict: 'user_id,category_id' }
-            );
-        if (error) throw error;
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
-
-export async function getUncategorizedTransactions(): Promise<ActionResult<Transaction[]>> {
-    try {
-        const supabase = await createClient();
-
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (!authUser) return { success: false, error: 'Not authenticated' };
-
-        const { data: currentUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('auth_id', authUser.id)
-            .single();
-
-        if (!currentUser) return { success: true, data: [] };
-
-        const { data: uncat } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('name', 'Chưa phân loại')
-            .eq('type', 'expense')
-            .single();
-
-        if (!uncat) {
-            return { success: true, data: [] };
-        }
-
-        const { data, error } = await supabase
-            .from('transactions')
-            .select('*, category:categories(*), user:users(*)')
-            .eq('category_id', uncat.id)
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return { success: true, data: data || [] };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
-
-export async function updateTransactionCategory(
-    transactionId: string,
-    newCategoryId: string
-): Promise<ActionResult<void>> {
-    try {
-        const supabase = await createClient();
-
-        const { error } = await supabase
-            .from('transactions')
-            .update({ category_id: newCategoryId })
-            .eq('id', transactionId);
-
-        if (error) throw error;
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
 
 export async function getDebts(
     status?: 'pending' | 'resolved'
@@ -540,6 +320,32 @@ export async function addDebt(
     }
 }
 
+export async function deleteDebt(debtId: string): Promise<ActionResult<void>> {
+    try {
+        const supabase = await createClient();
+        const { error } = await supabase.from('debts').delete().eq('id', debtId);
+        if (error) throw error;
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateDebt(
+    debtId: string,
+    updates: { debtor_name?: string; amount?: number; note?: string }
+): Promise<ActionResult<void>> {
+    try {
+        const supabase = await createClient();
+        const { error } = await supabase.from('debts').update(updates).eq('id', debtId);
+        if (error) throw error;
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+
 export async function resolveDebt(
     debtId: string
 ): Promise<ActionResult<void>> {
@@ -557,55 +363,146 @@ export async function resolveDebt(
             throw new Error('Debt not found or already resolved');
         }
 
-        const { data: repaymentCat, error: catError } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('name', 'Debt Repayment')
-            .eq('type', 'income')
-            .single();
 
-        if (catError || !repaymentCat) {
-            throw new Error('Debt Repayment category not found. Please create an income category called "Debt Repayment".');
-        }
 
+        // Đánh dấu resolved với paid_amount = original_amount
         const { error: updateError } = await supabase
             .from('debts')
             .update({
                 status: 'resolved',
+                paid_amount: debt.original_amount ?? debt.amount,
+                amount: 0,
                 resolved_at: new Date().toISOString(),
             })
             .eq('id', debtId);
 
         if (updateError) throw updateError;
 
+        // Tạo transaction income
+        const repayAmount = debt.amount;
         const { error: txError } = await supabase
             .from('transactions')
             .insert({
                 user_id: debt.user_id,
-                category_id: repaymentCat.id,
-                amount: debt.amount,
+                amount: repayAmount,
                 type: 'income',
                 note: `Debt repaid by ${debt.debtor_name}`,
             });
 
         if (txError) throw txError;
 
-        const { data: user } = await supabase
-            .from('users')
-            .select('total_balance')
-            .eq('id', debt.user_id)
-            .single();
+        // Cập nhật balance qua RPC (hoặc fallback thủ công)
+        const { error: rpcError } = await supabase.rpc('update_user_balance', {
+            p_user_id: debt.user_id,
+            p_delta: repayAmount,
+        });
 
-        if (user) {
-            await supabase
+        if (rpcError) {
+            // Fallback thủ công nếu RPC không tồn tại
+            const { data: user } = await supabase
                 .from('users')
-                .update({ total_balance: user.total_balance + debt.amount })
-                .eq('id', debt.user_id);
+                .select('total_balance')
+                .eq('id', debt.user_id)
+                .single();
+
+            if (user) {
+                await supabase
+                    .from('users')
+                    .update({ total_balance: user.total_balance + repayAmount })
+                    .eq('id', debt.user_id);
+            }
         }
 
         return { success: true };
     } catch (error: any) {
         console.error('resolveDebt error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function partialRepayDebt(
+    debtId: string,
+    partialAmount: number
+): Promise<ActionResult<void>> {
+    try {
+        const supabase = await createClient();
+
+        const { data: debt, error: debtError } = await supabase
+            .from('debts')
+            .select('*')
+            .eq('id', debtId)
+            .eq('status', 'pending')
+            .single();
+
+        if (debtError || !debt) {
+            throw new Error('Khoản nợ không tồn tại hoặc đã được thanh toán');
+        }
+
+        if (partialAmount <= 0) {
+            throw new Error('Số tiền phải lớn hơn 0');
+        }
+
+        if (partialAmount > debt.amount) {
+            throw new Error('Số tiền trả không được vượt quá số nợ còn lại');
+        }
+
+
+
+        const newAmount = debt.amount - partialAmount;
+        const newPaidAmount = (debt.paid_amount ?? 0) + partialAmount;
+        const originalAmount = debt.original_amount ?? debt.amount;
+        const isFullyPaid = newAmount === 0;
+
+        // Cập nhật debt: giảm amount còn lại, tăng paid_amount
+        const { error: updateError } = await supabase
+            .from('debts')
+            .update({
+                amount: isFullyPaid ? 0 : newAmount,
+                paid_amount: newPaidAmount,
+                original_amount: originalAmount,
+                status: isFullyPaid ? 'resolved' : 'pending',
+                resolved_at: isFullyPaid ? new Date().toISOString() : null,
+            })
+            .eq('id', debtId);
+
+        if (updateError) throw updateError;
+
+        // Tạo transaction income cho phần đã trả
+        const { error: txError } = await supabase
+            .from('transactions')
+            .insert({
+                user_id: debt.user_id,
+                amount: partialAmount,
+                type: 'income',
+                note: `${debt.debtor_name} trả một phần (${partialAmount.toLocaleString('vi-VN')}₫/${originalAmount.toLocaleString('vi-VN')}₫)`,
+            });
+
+        if (txError) throw txError;
+
+        // Cập nhật balance
+        const { error: rpcError } = await supabase.rpc('update_user_balance', {
+            p_user_id: debt.user_id,
+            p_delta: partialAmount,
+        });
+
+        if (rpcError) {
+            const { data: user } = await supabase
+                .from('users')
+                .select('total_balance')
+                .eq('id', debt.user_id)
+                .single();
+
+            if (user) {
+                await supabase
+                    .from('users')
+                    .update({ total_balance: user.total_balance + partialAmount })
+                    .eq('id', debt.user_id);
+            }
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('partialRepayDebt error:', error);
         return { success: false, error: error.message };
     }
 }
@@ -679,6 +576,120 @@ export async function getMonthlyHistory(): Promise<ActionResult<MonthlyHistory[]
         return { success: true, data: months };
     } catch (error: any) {
         console.error('getMonthlyHistory error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getMonthlyBalanceSummary(): Promise<ActionResult<MonthlyBalanceSummary[]>> {
+    try {
+        const supabase = await createClient();
+
+        // Lấy danh sách users với balance hiện tại
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, name, total_balance')
+            .order('name');
+        if (usersError) throw usersError;
+        if (!users || users.length === 0) return { success: true, data: [] };
+
+        // Lấy tất cả transactions sort tăng dần
+        const { data: transactions, error: txError } = await supabase
+            .from('transactions')
+            .select('*')
+            .order('created_at', { ascending: true });
+        if (txError) throw txError;
+        if (!transactions || transactions.length === 0) return { success: true, data: [] };
+
+        // Gom transactions theo tháng cho từng user
+        // key: monthKey, value: Map<userId, {income, expense}>
+        const monthUserMap = new Map<string, Map<string, { income: number; expense: number }>>();
+
+        for (const tx of transactions) {
+            const date = new Date(tx.created_at);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+            if (!monthUserMap.has(monthKey)) {
+                monthUserMap.set(monthKey, new Map());
+            }
+            const userMap = monthUserMap.get(monthKey)!;
+            if (!userMap.has(tx.user_id)) {
+                userMap.set(tx.user_id, { income: 0, expense: 0 });
+            }
+            const entry = userMap.get(tx.user_id)!;
+            if (tx.type === 'income') entry.income += tx.amount;
+            else entry.expense += tx.amount;
+        }
+
+        const sortedMonths = Array.from(monthUserMap.keys()).sort();
+
+        // Tính balance cuối tháng:
+        // balance cuối tháng = balance hiện tại - tổng net từ các tháng SAU tháng đó
+        // Cách: tính net mỗi tháng cho mỗi user, rồi cộng dồn ngược từ hiện tại
+        const userCurrentBalance: Record<string, number> = {};
+        for (const u of users) {
+            userCurrentBalance[u.id] = u.total_balance;
+        }
+
+        // Tính net mỗi tháng cho mỗi user
+        const monthNetByUser: Record<string, Record<string, number>> = {};
+        for (const monthKey of sortedMonths) {
+            monthNetByUser[monthKey] = {};
+            const userMap = monthUserMap.get(monthKey)!;
+            for (const u of users) {
+                const data = userMap.get(u.id) || { income: 0, expense: 0 };
+                monthNetByUser[monthKey][u.id] = data.income - data.expense;
+            }
+        }
+
+        // Tính balance cuối mỗi tháng bằng cách duyệt ngược:
+        // Bắt đầu từ balance hiện tại, trừ dần net của từng tháng từ mới đến cũ
+        const monthEndBalance: Record<string, Record<string, number>> = {};
+        const runningBalance: Record<string, number> = { ...userCurrentBalance };
+
+        for (let i = sortedMonths.length - 1; i >= 0; i--) {
+            const monthKey = sortedMonths[i];
+            monthEndBalance[monthKey] = {};
+            for (const u of users) {
+                monthEndBalance[monthKey][u.id] = runningBalance[u.id];
+            }
+            // Trước tháng này: trừ đi net của tháng này
+            for (const u of users) {
+                runningBalance[u.id] -= (monthNetByUser[monthKey]?.[u.id] || 0);
+            }
+        }
+
+        // Tổng hợp output
+        const [year, month] = sortedMonths[0]?.split('-') || ['', ''];
+        const result: MonthlyBalanceSummary[] = sortedMonths.map((monthKey) => {
+            const [yr, mo] = monthKey.split('-');
+            const userMap = monthUserMap.get(monthKey)!;
+            const perUser = users.map((u: any) => {
+                const data = userMap.get(u.id) || { income: 0, expense: 0 };
+                return {
+                    userId: u.id,
+                    userName: u.name,
+                    endBalance: monthEndBalance[monthKey][u.id],
+                    totalIncome: data.income,
+                    totalExpense: data.expense,
+                    netChange: data.income - data.expense,
+                };
+            });
+
+            const combinedBalance = perUser.reduce((s, p) => s + p.endBalance, 0);
+            const totalExpense = perUser.reduce((s, p) => s + p.totalExpense, 0);
+
+            return {
+                month: monthKey,
+                label: `Tháng ${parseInt(mo)}/${yr}`,
+                totalExpense,
+                perUser,
+                combinedBalance,
+            };
+        });
+
+        return { success: true, data: result };
+    } catch (error: any) {
+        console.error('getMonthlyBalanceSummary error:', error);
         return { success: false, error: error.message };
     }
 }

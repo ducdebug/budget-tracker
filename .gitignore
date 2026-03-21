@@ -9,3 +9,7 @@ node_modules/
 .env
 .env*.local
 .DS_Store
+
+# Database schema
+schema.sql
+supabase/schema.sql

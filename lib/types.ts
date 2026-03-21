@@ -12,24 +12,13 @@ export interface User {
     updated_at: string;
 }
 
-export interface Category {
-    id: string;
-    name: string;
-    icon: string;
-    type: 'income' | 'expense';
-    monthly_limit: number;
-    created_at: string;
-}
-
 export interface Transaction {
     id: string;
     user_id: string;
-    category_id: string;
     amount: number;
     type: 'income' | 'expense';
     note: string;
     created_at: string;
-    category?: Category;
     user?: User;
 }
 
@@ -38,6 +27,8 @@ export interface Debt {
     user_id: string;
     debtor_name: string;
     amount: number;
+    original_amount: number;
+    paid_amount: number;
     note: string;
     status: 'pending' | 'resolved';
     resolved_at: string | null;
@@ -59,32 +50,8 @@ export interface UserFinanceSummary {
     savingRate: number;
 }
 
-export interface BudgetStatus {
-    category: Category;
-    spent: number;
-    limit: number;
-    percentage: number;
-    perUser: {
-        userId: string;
-        userName: string;
-        spent: number;
-        limit: number;
-        percentage: number;
-    }[];
-}
-
-export interface UserCategoryLimit {
-    id: string;
-    user_id: string;
-    category_id: string;
-    monthly_limit: number;
-    created_at: string;
-    updated_at: string;
-}
-
 export interface AddTransactionInput {
     user_id: string;
-    category_id: string;
     amount: number;
     type: 'income' | 'expense';
     note?: string;
@@ -108,13 +75,6 @@ export interface UpdateProfileInput {
     avatar_url?: string | null;
 }
 
-export interface AddCategoryInput {
-    name: string;
-    icon: string;
-    type: 'income' | 'expense';
-    monthly_limit?: number;
-}
-
 export interface ActionResult<T = void> {
     success: boolean;
     data?: T;
@@ -134,4 +94,19 @@ export interface MonthlyHistory {
         expense: number;
         net: number;
     }[];
+}
+
+export interface MonthlyBalanceSummary {
+    month: string;
+    label: string;
+    totalExpense: number;
+    perUser: {
+        userId: string;
+        userName: string;
+        endBalance: number;
+        totalIncome: number;
+        totalExpense: number;
+        netChange: number;
+    }[];
+    combinedBalance: number;
 }

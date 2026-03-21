@@ -77,7 +77,7 @@ export function SettingsPanel({ users, currentUser, appSettings, onUpdate, onPro
     const otherUser = users.find(u => u.id !== currentUser?.id);
 
     return (
-        <div className="px-5 py-4">
+        <div className="px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
             <h2 className="text-xl font-bold text-foreground mb-5">Cài đặt</h2>
 
             {!currentUser ? (

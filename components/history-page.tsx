@@ -108,7 +108,7 @@ export function HistoryPage({ currentUserId }: HistoryPageProps) {
 
     return (
         <div className="min-h-screen bg-background" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 90px)' }}>
-            <div className="px-4 pt-4 pb-2">
+            <div className="px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-2">
                 <h2 className="text-base font-bold text-foreground">Lịch sử giao dịch</h2>
             </div>
 

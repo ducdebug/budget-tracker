@@ -168,7 +168,7 @@ export default function Dashboard({
       {activeTab === 'home' && (
         <div className="h-screen max-w-md mx-auto relative overflow-hidden bg-[#FFF9FA] dark:bg-background">
           {/* Floating Header */}
-          <div className="absolute top-0 left-0 right-0 z-20 pt-4 px-4 pb-2 w-full pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 z-20 pt-[calc(env(safe-area-inset-top)+1rem)] px-4 pb-2 w-full pointer-events-none">
             <div className="flex items-stretch bg-card/90 dark:bg-card/80 backdrop-blur-2xl rounded-[28px] overflow-hidden border border-rose-100/80 dark:border-border/50 shadow-lg shadow-rose-100/30 dark:shadow-black/20 pointer-events-auto">
               {/* Left: other user */}
               <div className="flex-1 px-4 py-3.5 text-left relative overflow-hidden transition-colors">
@@ -299,8 +299,8 @@ export default function Dashboard({
       )}
 
       {activeTab === 'debt' && (
-        <div className="min-h-screen bg-background pb-24 max-w-md mx-auto">
-          <div className="px-5 pt-6 sticky top-0 bg-background/95 backdrop-blur z-10 pb-4 border-b border-border">
+        <div className="min-h-screen bg-background text-foreground pb-20">
+          <div className="px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] bg-background/80 backdrop-blur-md sticky top-0 z-10 flex justify-between items-center border-b border-rose-100/50 dark:border-border/50">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground">Sổ Nợ</h2>
             </div>

@@ -47,8 +47,8 @@ export function AddDebtDrawer({ open, onClose, onSuccess, users, currentUserId }
                     <form onSubmit={handleSubmit} className="px-5 pb-8 space-y-3">
                         <input type="text" value={debtorName} onChange={e => setDebtorName(e.target.value)} placeholder="Ai nợ?"
                             className="w-full py-3 px-4 rounded-xl border border-border bg-muted/40 focus:border-primary focus:outline-none text-sm" required />
-                        <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Số tiền (₫)"
-                            className="w-full text-2xl font-bold text-center py-3 px-4 rounded-xl border border-border bg-muted/40 focus:border-primary focus:outline-none" min="1" required />
+                        <input type="text" inputMode="numeric" pattern="[0-9]*" value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Số tiền (₫)"
+                            className="w-full h-14 text-2xl font-bold text-center px-4 rounded-xl border border-border bg-muted/40 focus:border-primary focus:outline-none" required />
                         <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Ghi chú (không bắt buộc)"
                             className="w-full py-3 px-4 rounded-xl border border-border bg-muted/40 focus:border-primary focus:outline-none text-sm" />
                         {error && <p className="text-destructive text-sm text-center">{error}</p>}

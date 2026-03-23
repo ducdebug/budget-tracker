@@ -84,12 +84,13 @@ export function AddTransactionDrawer({ open, onClose, onSuccess, currentUserId }
 
                         <div>
                             <input
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 value={amount}
-                                onChange={e => setAmount(e.target.value)}
+                                onChange={e => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
                                 placeholder="0"
-                                className="w-full text-3xl font-bold text-center py-4 px-4 rounded-2xl border-2 border-border bg-muted/30 focus:border-primary focus:outline-none transition-colors"
-                                min="1"
+                                className="w-full h-[68px] text-3xl font-bold text-center px-4 rounded-2xl border-2 border-border bg-muted/30 focus:border-primary focus:outline-none transition-colors"
                                 required
                                 autoFocus
                             />

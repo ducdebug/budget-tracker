@@ -20,6 +20,16 @@ function formatTime(iso: string) {
     return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDate(iso: string) {
+    const d = new Date(iso);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Hôm nay';
+    if (d.toDateString() === yesterday.toDateString()) return 'Hôm qua';
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 interface MonthGroup {
     key: string;
     label: string;
@@ -129,6 +139,17 @@ export function HistoryPage({ currentUserId }: HistoryPageProps) {
                         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                     );
 
+                    const groupedTx = (() => {
+                        const groups: { date: string; items: Transaction[] }[] = [];
+                        for (const tx of sortedTxs) {
+                            const d = formatDate(tx.created_at);
+                            const last = groups[groups.length - 1];
+                            if (last && last.date === d) last.items.push(tx);
+                            else groups.push({ date: d, items: [tx] });
+                        }
+                        return groups;
+                    })();
+
                     return (
                         <div key={m.key} className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
                             {/* Month header row */}
@@ -174,31 +195,46 @@ export function HistoryPage({ currentUserId }: HistoryPageProps) {
 
                             {/* Chat-style expanded view */}
                             {isOpen && (
-                                <div className="border-t border-border/50 bg-muted/20 px-3 py-3 space-y-1 max-h-[60vh] overflow-y-auto">
-                                    {sortedTxs.map(tx => {
-                                        const isMe = tx.user_id === currentUserId;
-                                        const isIncome = tx.type === 'income';
-                                        return (
-                                            <div key={tx.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[72%] px-3 py-2 rounded-2xl shadow-sm ${isMe
-                                                    ? 'bg-blue-500 text-white rounded-br-sm'
-                                                    : 'bg-card border border-border text-foreground rounded-bl-sm'
-                                                    }`}>
-                                                    <p className={`text-sm font-bold leading-tight ${isMe ? 'text-white' : isIncome ? 'text-green-600' : 'text-red-500'}`}>
-                                                        {isIncome ? '+' : '-'}{fv(tx.amount)}₫
-                                                    </p>
-                                                    {tx.note && (
-                                                        <p className={`text-xs mt-0.5 ${isMe ? 'text-blue-100' : 'text-muted-foreground'}`}>
-                                                            {tx.note}
-                                                        </p>
-                                                    )}
-                                                    <p className={`text-[10px] mt-0.5 text-right ${isMe ? 'text-blue-200' : 'text-muted-foreground'}`}>
-                                                        {formatTime(tx.created_at)}
-                                                    </p>
-                                                </div>
+                                <div className="border-t border-border/50 bg-[#FFF9FA] dark:bg-background px-4 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                                    {groupedTx.map(group => (
+                                        <div key={group.date} className="pt-2">
+                                            <div className="flex items-center justify-center mb-5 sticky top-2 z-10">
+                                              <span className="text-[10px] text-muted-foreground bg-background/80 backdrop-blur-md px-3.5 py-1.5 rounded-full font-bold shadow-sm border border-border/40 uppercase tracking-widest">
+                                                {group.date}
+                                              </span>
                                             </div>
-                                        );
-                                    })}
+                                            <div className="space-y-3">
+                                                {group.items.map((tx, idx) => {
+                                                    const isMe = tx.user_id === currentUserId;
+                                                    const isIncome = tx.type === 'income';
+                                                    const isFirstInGroup = idx === 0 || group.items[idx - 1].user_id !== tx.user_id;
+                                                    const isLastInGroup = idx === group.items.length - 1 || group.items[idx + 1].user_id !== tx.user_id;
+
+                                                    return (
+                                                      <div key={tx.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                                        <div className={`max-w-[78%] px-4 py-3 shadow-sm relative transition-all duration-200 active:scale-[0.98] ${isMe
+                                                          ? `bg-gradient-to-br from-primary to-rose-400 text-white rounded-[20px] ${isLastInGroup ? 'rounded-br-[4px]' : ''} ${isFirstInGroup ? 'rounded-tr-[20px]' : 'rounded-tr-[8px]'} shadow-primary/25`
+                                                          : `bg-card/95 backdrop-blur-sm border border-rose-100/50 dark:border-border/50 text-foreground rounded-[20px] ${isLastInGroup ? 'rounded-bl-[4px]' : ''} ${isFirstInGroup ? 'rounded-tl-[20px]' : 'rounded-tl-[8px]'}`
+                                                          }`}>
+                                                          <p className={`text-[17px] font-bold tracking-tight mb-1 ${isMe ? 'text-white drop-shadow-sm' : isIncome ? 'text-emerald-500' : 'text-foreground'}`}>
+                                                            {isIncome ? '+' : '-'}{fv(tx.amount)}
+                                                            <span className="text-[12px] font-medium ml-0.5 opacity-80">₫</span>
+                                                          </p>
+                                                          {tx.note && (
+                                                            <p className={`text-[14px] font-medium leading-[1.4] ${isMe ? 'text-white/95' : 'text-muted-foreground/90'}`}>
+                                                              {tx.note}
+                                                            </p>
+                                                          )}
+                                                          <p className={`text-[9px] mt-1.5 font-semibold ${isMe ? 'text-white/70 text-right' : 'text-muted-foreground/50 text-left'}`}>
+                                                            {formatTime(tx.created_at)}
+                                                          </p>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
